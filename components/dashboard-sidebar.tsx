@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { BookOpen, PlusCircle, Search } from "lucide-react"
+import { MoreVertical, PlusCircle, Search, Share, Pencil, Star, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Sidebar,
   SidebarContent,
@@ -28,7 +29,7 @@ export function DashboardSidebar() {
     older: HistoryItem[]
   }>({
     today: [
-      { id: "1", title: "History is Selected", isSelected: true },
+      { id: "1", title: "Sign in dan Sign up", isSelected: true },
       { id: "2", title: "History 1" },
     ],
     lastWeek: [
@@ -52,6 +53,27 @@ export function DashboardSidebar() {
       today: updateSection(historyItems.today),
       lastWeek: updateSection(historyItems.lastWeek),
       older: updateSection(historyItems.older),
+    })
+  }
+
+  const renameHistoryItem = (id: string, newTitle: string) => {
+    const updateSection = (items: HistoryItem[]) =>
+      items.map((item) => (item.id === id ? { ...item, title: newTitle } : item))
+
+    setHistoryItems({
+      today: updateSection(historyItems.today),
+      lastWeek: updateSection(historyItems.lastWeek),
+      older: updateSection(historyItems.older),
+    })
+  }
+
+  const deleteHistoryItem = (id: string) => {
+    const filterSection = (items: HistoryItem[]) => items.filter((item) => item.id !== id)
+
+    setHistoryItems({
+      today: filterSection(historyItems.today),
+      lastWeek: filterSection(historyItems.lastWeek),
+      older: filterSection(historyItems.older),
     })
   }
 
@@ -88,23 +110,62 @@ export function DashboardSidebar() {
           )}
         </div>
 
-        <div className="py-2">
+        <div className="py-1">
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h2 className="text-sm font-medium">History Hari Ini</h2>
+              <h2 className="text-xs font-medium">History Hari Ini</h2>
             </div>
           )}
           <SidebarMenu>
             {historyItems.today.map((item) => (
-              <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
-                  isActive={item.isSelected}
-                  onClick={() => selectHistoryItem(item.id)}
-                  className={item.isSelected ? "bg-blue-900 text-white hover:bg-blue-900 hover:text-white" : ""}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  {!isCollapsed && <span>{item.title}</span>}
-                </SidebarMenuButton>
+              <SidebarMenuItem key={item.id} className="group">
+                <div className="flex items-center w-full">
+                  <SidebarMenuButton
+                    isActive={item.isSelected}
+                    onClick={() => selectHistoryItem(item.id)}
+                    className={`${item.isSelected ? "bg-blue-900 text-white hover:bg-blue-900 hover:text-white" : ""} flex-grow`}
+                  >
+                    {!isCollapsed && <span className="ml-1">{item.title}</span>}
+                    {isCollapsed && <span className="w-1 h-1 rounded-full bg-current"></span>}
+                  </SidebarMenuButton>
+
+                  {!isCollapsed && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-white text-black border-gray-200">
+                        <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                          <Share className="h-4 w-4" />
+                          <span>Share</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 focus:bg-gray-100"
+                          onClick={() => {
+                            const newTitle = prompt("Masukkan nama baru:", item.title)
+                            if (newTitle) renameHistoryItem(item.id, newTitle)
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span>Rename</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                          <Star className="h-4 w-4" />
+                          <span>Favorite</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
+                          onClick={() => deleteHistoryItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
@@ -114,19 +175,55 @@ export function DashboardSidebar() {
           <>
             <div className="py-2">
               <div className="px-4 py-2">
-                <h2 className="text-sm font-medium">History Minggu Lalu</h2>
+                <h2 className="text-xs font-medium">History Minggu Lalu</h2>
               </div>
               <SidebarMenu>
                 {historyItems.lastWeek.map((item) => (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      isActive={item.isSelected}
-                      onClick={() => selectHistoryItem(item.id)}
-                      className={item.isSelected ? "bg-blue-900 text-white hover:bg-blue-900 hover:text-white" : ""}
-                    >
-                      <BookOpen className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
+                  <SidebarMenuItem key={item.id} className="group">
+                    <div className="flex items-center w-full">
+                      <SidebarMenuButton
+                        isActive={item.isSelected}
+                        onClick={() => selectHistoryItem(item.id)}
+                        className={`${item.isSelected ? "bg-blue-900 text-white hover:bg-blue-900 hover:text-white" : ""} flex-grow`}
+                      >
+                        <span className="ml-1">{item.title}</span>
+                      </SidebarMenuButton>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-white text-black border-gray-200">
+                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                            <Share className="h-4 w-4" />
+                            <span>Share</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="flex items-center gap-2 focus:bg-gray-100"
+                            onClick={() => {
+                              const newTitle = prompt("Masukkan nama baru:", item.title)
+                              if (newTitle) renameHistoryItem(item.id, newTitle)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span>Rename</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                            <Star className="h-4 w-4" />
+                            <span>Favorite</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
+                            onClick={() => deleteHistoryItem(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -134,19 +231,55 @@ export function DashboardSidebar() {
 
             <div className="py-2">
               <div className="px-4 py-2">
-                <h2 className="text-sm font-medium">Beriberi Long History</h2>
+                <h2 className="text-xs font-medium">Beriberi Long History</h2>
               </div>
               <SidebarMenu>
                 {historyItems.older.map((item) => (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      isActive={item.isSelected}
-                      onClick={() => selectHistoryItem(item.id)}
-                      className={item.isSelected ? "bg-blue-900 text-white hover:bg-blue-900 hover:text-white" : ""}
-                    >
-                      <BookOpen className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
+                  <SidebarMenuItem key={item.id} className="group">
+                    <div className="flex items-center w-full">
+                      <SidebarMenuButton
+                        isActive={item.isSelected}
+                        onClick={() => selectHistoryItem(item.id)}
+                        className={`${item.isSelected ? "bg-blue-900 text-white hover:bg-blue-900 hover:text-white" : ""} flex-grow`}
+                      >
+                        <span className="ml-1">{item.title}</span>
+                      </SidebarMenuButton>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-white text-black border-gray-200">
+                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                            <Share className="h-4 w-4" />
+                            <span>Share</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="flex items-center gap-2 focus:bg-gray-100"
+                            onClick={() => {
+                              const newTitle = prompt("Masukkan nama baru:", item.title)
+                              if (newTitle) renameHistoryItem(item.id, newTitle)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span>Rename</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                            <Star className="h-4 w-4" />
+                            <span>Favorite</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
+                            onClick={() => deleteHistoryItem(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
