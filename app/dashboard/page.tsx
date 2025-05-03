@@ -4,7 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 
 export default function DashboardPage() {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full overflow-hidden">
         <DashboardSidebar />
         <DashboardContent />

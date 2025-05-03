@@ -3,14 +3,14 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { type VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_WIDTH_ICON = "4rem"
 
 type SidebarContext = {
   state: "expanded" | "collapsed"
@@ -117,7 +117,7 @@ const Sidebar = React.forwardRef<
     side?: "left" | "right"
     collapsible?: "offcanvas" | "icon" | "none"
   }
->(({ side = "left", collapsible = "offcanvas", className, children, ...props }, ref) => {
+>(({ side = "left", collapsible = "icon", className, children, ...props }, ref) => {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
   if (isMobile) {
@@ -147,9 +147,9 @@ const Sidebar = React.forwardRef<
       ref={ref}
       className={cn(
         "group peer hidden md:flex text-foreground",
-        "duration-300 relative h-full w-[--sidebar-width] flex-col bg-background transition-[width] ease-in-out",
-        collapsible === "offcanvas" && state === "collapsed" && "w-0",
-        collapsible === "icon" && state === "collapsed" && "w-[--sidebar-width-icon]",
+        "duration-300 relative h-full flex-col bg-background transition-[width] ease-in-out",
+        collapsible === "offcanvas" && state === "collapsed" && "w-0 overflow-hidden",
+        collapsible === "icon" && state === "collapsed" ? "w-[--sidebar-width-icon]" : "w-[--sidebar-width]",
         className,
       )}
       data-state={state}
@@ -164,8 +164,9 @@ const Sidebar = React.forwardRef<
 Sidebar.displayName = "Sidebar"
 
 const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.ComponentProps<typeof Button>>(
-  ({ className, onClick, ...props }, ref) => {
-    const { toggleSidebar } = useSidebar()
+  ({ className, onClick, children, ...props }, ref) => {
+    const { toggleSidebar, state } = useSidebar()
+    const isCollapsed = state === "collapsed"
 
     return (
       <Button
@@ -179,7 +180,7 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
         }}
         {...props}
       >
-        <PanelLeft className="h-4 w-4" />
+        {children || (isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />)}
         <span className="sr-only">Toggle Sidebar</span>
       </Button>
     )
@@ -203,7 +204,7 @@ const SidebarMenuItem = React.forwardRef<HTMLLIElement, React.ComponentProps<"li
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none transition-[width,height,padding] hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 active:bg-accent active:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-accent data-[active=true]:font-medium data-[active=true]:text-accent-foreground data-[state=open]:hover:bg-accent data-[state=open]:hover:text-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none transition-[width,height,padding] hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 active:bg-accent active:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-accent data-[active=true]:font-medium data-[active=true]:text-accent-foreground data-[state=open]:hover:bg-accent data-[state=open]:hover:text-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -232,12 +233,18 @@ const SidebarMenuButton = React.forwardRef<
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(({ asChild = false, isActive = false, variant = "default", size = "default", className, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
 
   return (
     <Comp
       ref={ref}
       data-active={isActive}
-      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+      className={cn(
+        sidebarMenuButtonVariants({ variant, size }),
+        isCollapsed ? "justify-center w-full" : "w-full",
+        className,
+      )}
       {...props}
     />
   )
