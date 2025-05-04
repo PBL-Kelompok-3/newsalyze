@@ -1,18 +1,29 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { toast } from 'react-hot-toast'
-import { sendEmailVerification, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth"
-import { auth, googleProvider } from "@/lib/firebase"
-
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { toast } from "react-hot-toast";
+import {
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -21,12 +32,12 @@ const formSchema = z.object({
   password: z.string().min(6, {
     message: "Password minimal 6 karakter",
   }),
-})
+});
 
 export function SignInForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -34,50 +45,48 @@ export function SignInForm() {
       email: "",
       password: "",
     },
-  })
+  });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-  
+    setIsLoading(true);
+
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         values.email,
         values.password
-      )
-      
-      if (!userCredential.user.emailVerified) {
-        await signOut(auth) // logout user
-        toast.error("Email belum diverifikasi. Cek kotak masuk Anda.")
-        return
-      }
-      
-      toast.success("Login berhasil!")
-      router.push("/dashboard")
-      
-    } catch (error: any) {
-      toast.error("Detail akun salah!")
-    } finally {
-      setIsLoading(false)
-    }
-  }  
+      );
 
-  async function handleGoogleSignIn() {
-    setIsGoogleLoading(true)
-  
-    try {
-      const result = await signInWithPopup(auth, googleProvider)
-  
-      toast.success("Login berhasil!")
-  
-      router.push("/dashboard")
+      if (!userCredential.user.emailVerified) {
+        await signOut(auth); // logout user
+        toast.error("Email belum diverifikasi. Cek kotak masuk Anda.");
+        return;
+      }
+
+      toast.success("Login berhasil!");
+      router.push("/dashboard");
     } catch (error: any) {
-      toast.error("Login gagal!")
+      toast.error("Detail akun salah!");
     } finally {
-      setIsGoogleLoading(false)
+      setIsLoading(false);
     }
   }
-  
+
+  async function handleGoogleSignIn() {
+    setIsGoogleLoading(true);
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+
+      toast.success("Login berhasil!");
+
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast.error("Login gagal!");
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -90,7 +99,7 @@ export function SignInForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="nama@contoh.com" {...field} />
+                  <Input placeholder="contoh@gmail.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -103,7 +112,10 @@ export function SignInForm() {
               <FormItem>
                 <div className="flex items-center justify-between">
                   <FormLabel>Password</FormLabel>
-                  <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-primary">
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground hover:text-primary"
+                  >
                     Lupa password?
                   </Link>
                 </div>
@@ -125,16 +137,29 @@ export function SignInForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Atau masuk dengan</span>
+          <span className="bg-background px-2 text-muted-foreground">
+            Atau masuk dengan
+          </span>
         </div>
       </div>
 
-      <Button variant="outline" onClick={handleGoogleSignIn} disabled={isGoogleLoading} className="w-full">
+      <Button
+        variant="outline"
+        onClick={handleGoogleSignIn}
+        disabled={isGoogleLoading}
+        className="w-full"
+      >
         {isGoogleLoading ? (
           "Memproses..."
         ) : (
           <div className="flex items-center justify-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" className="h-5 w-5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              className="h-5 w-5"
+            >
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -157,20 +182,21 @@ export function SignInForm() {
         )}
       </Button>
 
-      <Button
-  variant="outline"
-  onClick={async () => {
-    if (auth.currentUser && !auth.currentUser.emailVerified) {
-      await sendEmailVerification(auth.currentUser)
-      toast.success("Email verifikasi dikirim ulang.")
-    } else {
-      toast.error("Login dulu atau email sudah diverifikasi.")
-    }
-  }}
->
-  Kirim Ulang Verifikasi Email
-</Button>
-
+      <div className="flex justify-center">
+        <Button
+          variant="outline"
+          onClick={async () => {
+            if (auth.currentUser && !auth.currentUser.emailVerified) {
+              await sendEmailVerification(auth.currentUser);
+              toast.success("Email verifikasi dikirim ulang.");
+            } else {
+              toast.error("Login dulu atau email sudah diverifikasi.");
+            }
+          }}
+        >
+          Kirim Ulang Verifikasi Email
+        </Button>
+      </div>
     </div>
-  )
+  );
 }

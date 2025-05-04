@@ -1,31 +1,32 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { LogOut, Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { signOut } from "firebase/auth"
 import { auth } from "@/lib/firebase"
-import { useRouter } from "next/navigation"
 import { toast } from "react-hot-toast"
-
 
 export function DashboardContent() {
   const [inputValue, setInputValue] = useState("")
-
   const router = useRouter()
 
-const handleLogout = async () => {
-  try {
-    await signOut(auth)
-    toast.success("Berhasil logout")
-    router.replace("/sign-in")
-  } catch (error) {
-    toast.error("Gagal logout")
+  const handleEditProfile = () => {
+    router.push("/profile/edit")
   }
-}
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      toast.success("Berhasil logout")
+      router.replace("/sign-in")
+    } catch (error) {
+      toast.error("Gagal logout")
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -38,16 +39,16 @@ const handleLogout = async () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <img
-                  src="https://i.pinimg.com/736x/8e/1f/7e/8e1f7ec445966723f91ace7760edab7b.jpg"
+                  src="https://i.pinimg.com/736x/d2/e3/69/d2e369e5c82b185a2feffcd9da115234.jpg"
                   alt="User avatar"
                   className="h-8 w-8 rounded-full"
                 />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEditProfile}>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Pengaturan</span>
+                <span>Edit Profil</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

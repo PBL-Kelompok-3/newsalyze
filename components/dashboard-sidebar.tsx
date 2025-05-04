@@ -113,7 +113,7 @@ export function DashboardSidebar() {
         <div className="py-1">
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h2 className="text-xs font-medium">History Hari Ini</h2>
+              <h2 className="text-xs font-medium">Hari Ini</h2>
             </div>
           )}
           <SidebarMenu>
@@ -175,7 +175,7 @@ export function DashboardSidebar() {
           <>
             <div className="py-2">
               <div className="px-4 py-2">
-                <h2 className="text-xs font-medium">History Minggu Lalu</h2>
+                <h2 className="text-xs font-medium">Minggu Lalu</h2>
               </div>
               <SidebarMenu>
                 {historyItems.lastWeek.map((item) => (
@@ -231,7 +231,7 @@ export function DashboardSidebar() {
 
             <div className="py-2">
               <div className="px-4 py-2">
-                <h2 className="text-xs font-medium">Beriberi Long History</h2>
+                <h2 className="text-xs font-medium">Bulan Sebelumnya</h2>
               </div>
               <SidebarMenu>
                 {historyItems.older.map((item) => (

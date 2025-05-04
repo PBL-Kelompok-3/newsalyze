@@ -1,55 +1,61 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { toast } from 'react-hot-toast'
-import { sendPasswordResetEmail } from "firebase/auth"
-import { auth } from "@/lib/firebase"
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { toast } from "react-hot-toast";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const formSchema = z.object({
   email: z.string().email({
     message: "Email tidak valid",
   }),
-})
+});
 
 export function ForgotPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
     },
-  })
+  });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, values.email)
-      setIsSubmitted(true)
-      toast.success("Email reset password telah dikirim!")
+      await sendPasswordResetEmail(auth, values.email);
+      setIsSubmitted(true);
+      toast.success("Email reset password telah dikirim!");
     } catch (error: any) {
-      let errorMessage = "Terjadi kesalahan."
-    
+      let errorMessage = "Terjadi kesalahan.";
+
       if (error.code === "auth/user-not-found") {
-        errorMessage = "Email tidak ditemukan."
+        errorMessage = "Email tidak ditemukan.";
       } else if (error.code === "auth/invalid-email") {
-        errorMessage = "Format email tidak valid."
+        errorMessage = "Format email tidak valid.";
       }
-    
-      toast.error(errorMessage)
+
+      toast.error(errorMessage);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -74,13 +80,14 @@ export function ForgotPasswordForm() {
         </div>
         <h3 className="text-xl font-semibold">Email Terkirim</h3>
         <p className="text-muted-foreground">
-          Kami telah mengirimkan email dengan instruksi untuk reset password ke alamat email Anda.
+          Kami telah mengirimkan email dengan instruksi untuk reset password ke
+          alamat email Anda.
         </p>
         <Button onClick={() => router.push("/sign-in")} className="w-full">
           Kembali ke halaman masuk
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -104,5 +111,5 @@ export function ForgotPasswordForm() {
         </Button>
       </form>
     </Form>
-  )
+  );
 }

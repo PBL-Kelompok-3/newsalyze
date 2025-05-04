@@ -23,7 +23,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold">Daftar</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Buat akun baru untuk mulai menggunakan aplikasi</p>
+          <p className="mt-2 text-sm text-muted-foreground">Buat akun baru untuk mulai menggunakan web</p>
         </div>
         <SignUpForm />
         <div className="text-center text-sm">
