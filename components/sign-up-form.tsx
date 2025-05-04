@@ -8,7 +8,10 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
+import { auth } from "@/lib/firebase"
+import { toast } from 'react-hot-toast'
+import { sendEmailVerification } from "firebase/auth"
 
 const formSchema = z
   .object({
@@ -33,7 +36,6 @@ const formSchema = z
 export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,32 +49,58 @@ export function SignUpForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-
+  
     try {
-      // Simulate registration process
-      // In a real app, you would call your registration API here
-      console.log("Sign up values:", values)
-
-      // Simulate successful registration
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      toast({
-        title: "Pendaftaran berhasil!",
-        description: "Akun Anda telah berhasil dibuat.",
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      )
+  
+      // Tambahkan nama pengguna ke profil
+      await updateProfile(userCredential.user, {
+        displayName: values.name,
       })
 
-      // Redirect to sign in page
-      router.push("/sign-in")
-    } catch (error) {
-      toast({
-        title: "Pendaftaran gagal",
-        description: "Terjadi kesalahan saat mendaftar. Silakan coba lagi.",
-        variant: "destructive",
-      })
+      await sendEmailVerification(userCredential.user)
+  
+      toast.success("Silahkan cek email anda untuk proses verifikasi.")
+      
+      // Tunggu 1.5 detik sebelum redirect agar toast muncul
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      router.push("/sign-in");            
+    } catch (error: any) {
+      let errorMessage = "Terjadi kesalahan saat mendaftar.";
+    
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "Email sudah terdaftar. Silakan gunakan email lain.";
+    
+        // Set error langsung ke field email
+        form.setError("email", {
+          type: "manual",
+          message: errorMessage,
+        });
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Format email tidak valid.";
+        form.setError("email", {
+          type: "manual",
+          message: errorMessage,
+        });
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "Password terlalu lemah.";
+        form.setError("password", {
+          type: "manual",
+          message: errorMessage,
+        });
+      }
+    
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
+  
 
   return (
     <Form {...form}>

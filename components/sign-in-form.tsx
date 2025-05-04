@@ -9,7 +9,10 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from 'react-hot-toast'
+import { sendEmailVerification, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth"
+import { auth, googleProvider } from "@/lib/firebase"
+
 
 const formSchema = z.object({
   email: z.string().email({
@@ -24,7 +27,6 @@ export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,61 +38,46 @@ export function SignInForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-
+  
     try {
-      // Simulate authentication process
-      // In a real app, you would call your authentication API here
-      console.log("Sign in values:", values)
-
-      // Simulate successful login
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      toast({
-        title: "Login berhasil!",
-        description: "Anda berhasil masuk ke akun Anda.",
-      })
-
-      // Redirect to dashboard or home page
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      )
+      
+      if (!userCredential.user.emailVerified) {
+        await signOut(auth) // logout user
+        toast.error("Email belum diverifikasi. Cek kotak masuk Anda.")
+        return
+      }
+      
+      toast.success("Login berhasil!")
       router.push("/dashboard")
-    } catch (error) {
-      toast({
-        title: "Login gagal",
-        description: "Email atau password salah. Silakan coba lagi.",
-        variant: "destructive",
-      })
+      
+    } catch (error: any) {
+      toast.error("Detail akun salah!")
     } finally {
       setIsLoading(false)
     }
-  }
+  }  
 
   async function handleGoogleSignIn() {
     setIsGoogleLoading(true)
-
+  
     try {
-      // Simulate Google authentication process
-      // In a real app, you would call your Google authentication API here
-      console.log("Signing in with Google")
-
-      // Simulate successful login
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      toast({
-        title: "Login berhasil!",
-        description: "Anda berhasil masuk dengan Google.",
-      })
-
-      // Redirect to dashboard or home page
+      const result = await signInWithPopup(auth, googleProvider)
+  
+      toast.success("Login berhasil!")
+  
       router.push("/dashboard")
-    } catch (error) {
-      toast({
-        title: "Login gagal",
-        description: "Gagal masuk dengan Google. Silakan coba lagi.",
-        variant: "destructive",
-      })
+    } catch (error: any) {
+      toast.error("Login gagal!")
     } finally {
       setIsGoogleLoading(false)
     }
   }
+  
 
   return (
     <div className="space-y-6">
@@ -169,6 +156,21 @@ export function SignInForm() {
           </div>
         )}
       </Button>
+
+      <Button
+  variant="outline"
+  onClick={async () => {
+    if (auth.currentUser && !auth.currentUser.emailVerified) {
+      await sendEmailVerification(auth.currentUser)
+      toast.success("Email verifikasi dikirim ulang.")
+    } else {
+      toast.error("Login dulu atau email sudah diverifikasi.")
+    }
+  }}
+>
+  Kirim Ulang Verifikasi Email
+</Button>
+
     </div>
   )
 }

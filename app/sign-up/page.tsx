@@ -1,7 +1,23 @@
+"use client"
+
 import Link from "next/link"
 import { SignUpForm } from "@/components/sign-up-form"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { auth } from "@/lib/firebase"
 
 export default function SignUpPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user && user.emailVerified) {
+        router.replace("/dashboard") // gunakan replace agar tidak bisa "go back"
+      }
+    })
+
+    return () => unsubscribe()
+  }, [router])
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">

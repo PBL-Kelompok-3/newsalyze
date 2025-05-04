@@ -8,7 +8,10 @@ import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from 'react-hot-toast'
+import { sendPasswordResetEmail } from "firebase/auth"
+import { auth } from "@/lib/firebase"
+
 
 const formSchema = z.object({
   email: z.string().email({
@@ -20,7 +23,6 @@ export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,25 +35,19 @@ export function ForgotPasswordForm() {
     setIsLoading(true)
 
     try {
-      // Simulate password reset process
-      // In a real app, you would call your password reset API here
-      console.log("Reset password for:", values.email)
-
-      // Simulate successful password reset request
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
+      await sendPasswordResetEmail(auth, values.email)
       setIsSubmitted(true)
-
-      toast({
-        title: "Email terkirim!",
-        description: "Silakan periksa email Anda untuk instruksi reset password.",
-      })
-    } catch (error) {
-      toast({
-        title: "Permintaan gagal",
-        description: "Terjadi kesalahan saat mengirim email reset. Silakan coba lagi.",
-        variant: "destructive",
-      })
+      toast.success("Email reset password telah dikirim!")
+    } catch (error: any) {
+      let errorMessage = "Terjadi kesalahan."
+    
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "Email tidak ditemukan."
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Format email tidak valid."
+      }
+    
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }

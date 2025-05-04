@@ -5,9 +5,27 @@ import { LogOut, Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { signOut } from "firebase/auth"
+import { auth } from "@/lib/firebase"
+import { useRouter } from "next/navigation"
+import { toast } from "react-hot-toast"
+
 
 export function DashboardContent() {
   const [inputValue, setInputValue] = useState("")
+
+  const router = useRouter()
+
+const handleLogout = async () => {
+  try {
+    await signOut(auth)
+    toast.success("Berhasil logout")
+    router.replace("/sign-in")
+  } catch (error) {
+    toast.error("Gagal logout")
+  }
+}
+
 
   return (
     <div className="flex flex-1 flex-col">
@@ -31,7 +49,7 @@ export function DashboardContent() {
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Pengaturan</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Logout</span>
               </DropdownMenuItem>
