@@ -64,7 +64,7 @@ export function SignInForm() {
       }
 
       toast.success("Login berhasil!");
-      router.push("/dashboard");
+      router.push("/category-selection");
     } catch (error: any) {
       toast.error("Detail akun salah!");
     } finally {
@@ -80,7 +80,7 @@ export function SignInForm() {
 
       toast.success("Login berhasil!");
 
-      router.push("/dashboard");
+      router.push("/category-selection");
     } catch (error: any) {
       toast.error("Login gagal!");
     } finally {

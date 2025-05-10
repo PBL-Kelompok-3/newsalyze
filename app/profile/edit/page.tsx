@@ -62,14 +62,14 @@ export default function EditProfilePage() {
               <div className="relative">
                 <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
                   <AvatarImage src={profileImage || "/placeholder.svg"} alt="Profile" />
-                  <AvatarFallback className="bg-blue-100 text-blue-800">
+                  <AvatarFallback className="bg-gray-100 text-black">
                     <User className="h-12 w-12" />
                   </AvatarFallback>
                 </Avatar>
 
                 <Button
                   size="icon"
-                  className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-blue-600 shadow-md hover:bg-blue-700"
+                  className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-black shadow-md hover:bg-gray-700"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Camera className="h-5 w-5" />
@@ -93,13 +93,13 @@ export default function EditProfilePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Masukkan nama Anda"
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
 
               {/* Save Button */}
               <Button
-                className="mt-6 w-full bg-blue-600 py-2 text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="mt-6 w-full bg-black py-2 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                 onClick={handleSave}
                 disabled={isLoading}
               >
