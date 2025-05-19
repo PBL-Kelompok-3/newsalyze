@@ -81,7 +81,7 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar className="border-r" collapsible="icon">
-      <div className="flex h-14 items-center justify-between border-b px-4">
+      <div className="flex h-14 items-center justify-between px-4">
         <div className="flex items-center">
           <SidebarTrigger />
         </div>

@@ -1,36 +1,35 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "react-hot-toast";
-import "./globals.css";
+import type React from "react"
+import "./globals.css"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import { Toaster } from "react-hot-toast"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Newsalyze",
-  description: "Web untuk analisis berita dan komentar",
-};
+  title: "Newsalyze - Analisis Berita",
+  description: "Aplikasi untuk menganalisis berita",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="id">
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
+      </head>
+      <body className={inter.className}>
         {children}
         <Toaster position="bottom-center" />
       </body>
     </html>
-  );
+  )
 }
