@@ -53,7 +53,7 @@ export function DashboardContent() {
 
     setIsLoading(true);
     try {
-      const res = await fetch("http://34.87.27.37:8000/summarize", {
+      const res = await fetch("http://34.126.65.240:8000/summarize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -107,7 +107,7 @@ export function DashboardContent() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex h-14 items-center justify-between border-b px-4">
+      <header className="flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <Logo className="h-8 w-8" />
           <h1 className="text-xl font-semibold">Newsalyze</h1>
@@ -188,6 +188,38 @@ export function DashboardContent() {
                 </DropdownMenu>
               </div>
             </div>
+
+            {/* Rekomendasi Berita */}
+            <div className="bg-white p-6 border border-gray-200 rounded-lg space-y-4 max-h-[400px] overflow-y-auto">
+              <h3 className="font-semibold text-lg mb-2">
+                Rekomendasi Berita untuk Anda
+              </h3>
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-4 border-b pb-4 last:border-b-0"
+                >
+                  <img
+                    src={`https://source.unsplash.com/100x100/?news,${i}`} // Ganti dengan URL thumbnail berita asli
+                    alt="Thumbnail Berita"
+                    className="w-24 h-16 object-cover rounded-md"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-sm">
+                      Judul berita menarik ke-{i + 1}
+                    </span>
+                    <span className="text-xs text-gray-500 mt-1">
+                      Kategori •{" "}
+                      {new Date().toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col items-center justify-center space-y-6 pt-16 w-full">
@@ -200,7 +232,7 @@ export function DashboardContent() {
                 <div className="w-full">
                   <textarea
                     ref={textareaRef}
-                    placeholder="Else Type Your Idea here..."
+                    placeholder="Silahkan isi berita yang ingin Anda ringkas..."
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onFocus={handleFocus}
@@ -231,7 +263,7 @@ export function DashboardContent() {
                       disabled={isLoading}
                       className="bg-gray-900 hover:bg-gray-800 text-white rounded-md px-4 py-1"
                     >
-                      {isLoading ? "Processing..." : "Summarize"}
+                      {isLoading ? "Memproses..." : "Ringkaskan"}
                     </Button>
                   </div>
                 </div>

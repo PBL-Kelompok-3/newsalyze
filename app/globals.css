@@ -120,3 +120,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* optional custom scrollbar style */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* slate-300 */
+  border-radius: 3px;
+}
+

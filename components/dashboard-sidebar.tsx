@@ -93,13 +93,13 @@ export function DashboardSidebar() {
             className={`w-full justify-start gap-2 mb-2 ${isCollapsed ? "justify-center" : ""}`}
           >
             <PlusCircle className="h-4 w-4" />
-            {!isCollapsed && <span>New Chat</span>}
+            {!isCollapsed && <span>Chat Baru</span>}
           </Button>
 
           {!isCollapsed && (
             <div className="relative mb-2">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search..." className="pl-8" />
+              <Input placeholder="Cari Berita..." className="pl-8" />
             </div>
           )}
 
