@@ -6,6 +6,9 @@ import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { updateDoc, doc } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
+import { useEffect } from "react"
 
 // Daftar kategori berita
 const newsCategories = [
@@ -22,6 +25,12 @@ export default function CategorySelectionPage() {
   const MAX_SELECTIONS = 3
   const router = useRouter()
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (!auth.currentUser) {
+      router.push("/sign-in")
+    }
+  }, [])
 
   // Fungsi untuk menangani pemilihan kategori
   const handleCategoryToggle = (categoryId: string) => {
@@ -47,7 +56,7 @@ export default function CategorySelectionPage() {
   }
 
   // Fungsi untuk melanjutkan ke dashboard
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedCategories.length === 0) {
       toast({
         title: "Pilih Kategori",
@@ -57,12 +66,30 @@ export default function CategorySelectionPage() {
       return
     }
 
-    // Simpan kategori yang dipilih (bisa disimpan ke localStorage atau API)
-    localStorage.setItem("selectedNewsCategories", JSON.stringify(selectedCategories))
+    try {
+      const user = auth.currentUser
+      if (!user) throw new Error("User belum login")
 
-    // Redirect ke dashboard
-    router.push("/dashboard")
+      // Simpan ke Firestore
+      await updateDoc(doc(db, "users", user.uid), {
+        preferred_categories: selectedCategories,
+      })
+
+      toast({
+        title: "Berhasil!",
+        description: "Kategori berhasil disimpan",
+      })
+
+      router.push("/dashboard")
+    } catch (error: any) {
+      toast({
+        title: "Gagal Menyimpan",
+        description: error.message || "Terjadi kesalahan saat menyimpan data",
+        variant: "destructive",
+      })
+    }
   }
+
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">

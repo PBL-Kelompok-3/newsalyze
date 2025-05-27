@@ -22,8 +22,10 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  fetchSignInMethodsForEmail
 } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider, db } from "@/lib/firebase";
+import { getDoc, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -47,41 +49,94 @@ export function SignInForm() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
+async function onSubmit(values: z.infer<typeof formSchema>) {
+  setIsLoading(true)
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      );
+  try {
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      values.email,
+      values.password
+    )
 
-      if (!userCredential.user.emailVerified) {
-        await signOut(auth); // logout user
-        toast.error("Email belum diverifikasi. Cek kotak masuk Anda.");
-        return;
-      }
+    const user = userCredential.user
 
-      toast.success("Login berhasil!");
-      router.push("/category-selection");
-    } catch (error: any) {
-      toast.error("Detail akun salah!");
-    } finally {
-      setIsLoading(false);
+    if (!user.emailVerified) {
+      await signOut(auth)
+      toast.error("Email belum diverifikasi. Cek kotak masuk Anda.")
+      return
     }
+
+    // 🔍 Cek preferred_categories di Firestore
+    const userDocRef = doc(db, "users", user.uid)
+    const userDocSnap = await getDoc(userDocRef)
+
+    if (!userDocSnap.exists()) {
+      // fallback ke category-selection kalau data gak ditemukan
+      router.push("/category-selection")
+      return
+    }
+
+    const data = userDocSnap.data()
+    const categories = data?.preferred_categories
+
+    if (!categories || categories.length === 0) {
+      router.push("/category-selection")
+    } else {
+      router.push("/dashboard")
+    }
+
+    toast.success("Login berhasil!")
+  } catch (error: any) {
+    toast.error("Detail akun salah!")
+  } finally {
+    setIsLoading(false)
   }
+}
 
-  async function handleGoogleSignIn() {
+
+async function handleGoogleSignIn() {
+  try {
     setIsGoogleLoading(true);
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
 
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
+    // Cek apakah email-nya juga sudah pernah dipakai dengan email+password
+    const signInMethods = await fetchSignInMethodsForEmail(auth, user.email!);
 
-      toast.success("Login berhasil!");
+    if (signInMethods.includes("password") && !signInMethods.includes("google.com")) {
+      // berarti user daftar manual, jangan bikin akun Google baru
+      toast.error("Email ini sudah digunakan untuk akun manual. Silakan login dengan email dan password.");
+      await signOut(auth);
+      return;
+    }
 
-      router.push("/category-selection");
-    } catch (error: any) {
+    // Lanjut simpan ke Firestore jika belum ada
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      // Buat user baru di Firestore
+      await setDoc(userDocRef, {
+        user_id: user.uid,
+        username: user.displayName || "User",
+        join_date: serverTimestamp(),
+        location: "Indonesia",
+        preferred_categories: [], // default kosong
+      })
+
+      return router.push("/category-selection")
+    }
+
+    const userData = userDocSnap.data()
+    const categories = userData?.preferred_categories
+
+    if (!categories || categories.length === 0) {
+      router.push("/category-selection")
+    } else {
+      router.push("/dashboard")
+    }
+    } catch (error) {
       toast.error("Login gagal!");
     } finally {
       setIsGoogleLoading(false);

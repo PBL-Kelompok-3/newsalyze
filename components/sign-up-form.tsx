@@ -11,7 +11,10 @@ import { Input } from "@/components/ui/input"
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { toast } from 'react-hot-toast'
-import { sendEmailVerification } from "firebase/auth"
+import { sendEmailVerification, fetchSignInMethodsForEmail } from "firebase/auth"
+import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore"
+
+const db = getFirestore()
 
 const formSchema = z
   .object({
@@ -47,60 +50,70 @@ export function SignUpForm() {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-  
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      )
-  
-      // Tambahkan nama pengguna ke profil
-      await updateProfile(userCredential.user, {
-        displayName: values.name,
-      })
+async function onSubmit(values: z.infer<typeof formSchema>) {
+  setIsLoading(true)
 
-      await sendEmailVerification(userCredential.user)
-  
-      toast.success("Silahkan cek email anda untuk proses verifikasi.")
-      
-      // Tunggu 1.5 detik sebelum redirect agar toast muncul
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      router.push("/sign-in");            
-    } catch (error: any) {
-      let errorMessage = "Terjadi kesalahan saat mendaftar.";
-    
-      if (error.code === "auth/email-already-in-use") {
-        errorMessage = "Email sudah terdaftar. Silakan gunakan email lain.";
-    
-        // Set error langsung ke field email
-        form.setError("email", {
-          type: "manual",
-          message: errorMessage,
-        });
-      } else if (error.code === "auth/invalid-email") {
-        errorMessage = "Format email tidak valid.";
-        form.setError("email", {
-          type: "manual",
-          message: errorMessage,
-        });
-      } else if (error.code === "auth/weak-password") {
-        errorMessage = "Password terlalu lemah.";
-        form.setError("password", {
-          type: "manual",
-          message: errorMessage,
-        });
-      }
-    
-      toast.error(errorMessage)
-    } finally {
-      setIsLoading(false)
-    }
+  try {
+  const signInMethods = await fetchSignInMethodsForEmail(auth, values.email);
+
+  if (signInMethods.includes("google.com")) {
+    toast.error("Email ini sudah digunakan untuk akun Google. Silakan login dengan Google.");
+    return;
   }
-  
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      values.email,
+      values.password
+    )
+
+    await updateProfile(userCredential.user, {
+      displayName: values.name,
+    })
+
+    // Simpan data tambahan ke Firestore
+    await setDoc(doc(db, "users", userCredential.user.uid), {
+      user_id: userCredential.user.uid,
+      username: values.name,
+      join_date: serverTimestamp(),
+      location: "Indonesia",
+      preferred_categories: []
+    })
+
+    await sendEmailVerification(userCredential.user)
+
+    toast.success("Silahkan cek email anda untuk proses verifikasi.")
+
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    router.push("/sign-in")
+  } catch (error: any) {
+    let errorMessage = "Terjadi kesalahan saat mendaftar."
+
+    if (error.code === "auth/email-already-in-use") {
+      errorMessage = "Email sudah terdaftar. Silakan gunakan email lain."
+      form.setError("email", {
+        type: "manual",
+        message: errorMessage,
+      })
+    } else if (error.code === "auth/invalid-email") {
+      errorMessage = "Format email tidak valid."
+      form.setError("email", {
+        type: "manual",
+        message: errorMessage,
+      })
+    } else if (error.code === "auth/weak-password") {
+      errorMessage = "Password terlalu lemah."
+      form.setError("password", {
+        type: "manual",
+        message: errorMessage,
+      })
+    }
+
+    toast.error(errorMessage)
+  } finally {
+    setIsLoading(false)
+  }
+}  
 
   return (
     <Form {...form}>

@@ -53,14 +53,22 @@ export function DashboardContent() {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const dummySummary = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.
+      const res = await fetch("http://34.87.27.37:8000/summarize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: inputValue }),
+      });
 
-Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi.`;
-      setSummaryText(dummySummary);
+      if (!res.ok) throw new Error("Gagal fetch ringkasan");
+
+      const data = await res.json();
+      setSummaryText(data.summary);
       setShowSummary(true);
       toast.success("Analisis berita berhasil");
     } catch (error) {
+      console.error(error);
       toast.error("Gagal menganalisis berita");
     } finally {
       setIsLoading(false);
