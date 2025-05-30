@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type ChangeEvent } from "react";
+import { useEffect, useState, useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Camera, User, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { auth, db } from "@/lib/firebase";
+import { updateProfile } from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -29,33 +32,93 @@ export default function EditProfilePage() {
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setName(data.username || ""); // bisa juga displayName
+        setSelectedCategories(data.preferred_categories || []);
+        if (data.photoURL) {
+          setProfileImage(data.photoURL);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+
   const handleCategoryClick = (label: string) => {
-    if (selectedCategories.includes(label)) {
-      setSelectedCategories(selectedCategories.filter((cat) => cat !== label));
+    const labelLower = label.toLowerCase();
+
+    if (selectedCategories.includes(labelLower)) {
+      setSelectedCategories(selectedCategories.filter((cat) => cat !== labelLower));
     } else if (selectedCategories.length < 3) {
-      setSelectedCategories([...selectedCategories, label]);
+      setSelectedCategories([...selectedCategories, labelLower]);
     }
   };
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImage(imageUrl);
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await fetch("/api/upload-gcs", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setProfileImage(data.url);
+    } catch (err) {
+      console.error("Upload ke GCS gagal:", err);
     }
   };
 
   const handleSave = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("User not logged in");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // 1. Update profile di Firebase Auth
+      await updateProfile(user, {
+        displayName: name,
+        photoURL: profileImage,
+      });
+
+      // 2. Simpan preferensi kategori di Firestore
+      await setDoc(
+          doc(db, "users", user.uid),
+          {
+            username: name,
+            photoURL: profileImage,
+            preferred_categories: selectedCategories,
+            updated_at: serverTimestamp(),
+          },
+          { merge: true }
+      );
+
       router.push("/dashboard");
     } catch (error) {
-      console.error("Failed to save profile changes", error);
+      console.error("Gagal menyimpan perubahan:", error);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -137,9 +200,7 @@ export default function EditProfilePage() {
 
                 <div className="flex flex-col space-y-3">
                   {categories.map((category) => {
-                    const isSelected = selectedCategories.includes(
-                      category.label
-                    );
+                    const isSelected = selectedCategories.includes(category.label.toLowerCase());
                     return (
                       <div
                         key={category.label}

@@ -11,12 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import Logo from "@/components/logo";
+import { doc, getDoc } from "firebase/firestore";
 
 export function DashboardContent() {
   const [inputValue, setInputValue] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
@@ -28,10 +31,26 @@ export function DashboardContent() {
   useEffect(() => {
     if (textareaRef.current) {
       const shouldExpand =
-        inputValue.length > 100 || inputValue.split("\n").length > 3;
+          inputValue.length > 100 || inputValue.split("\n").length > 3;
       setIsExpanded(shouldExpand);
     }
   }, [inputValue]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setPhotoUrl(data.photoURL || null);
+        setUsername(data.username || null);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleEditProfile = () => router.push("/profile/edit");
 
@@ -53,7 +72,7 @@ export function DashboardContent() {
 
     setIsLoading(true);
     try {
-      const res = await fetch("http://34.126.65.240:8000/summarize", {
+      const res = await fetch("http://34.143.238.108:8000/summarize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -115,12 +134,13 @@ export function DashboardContent() {
         <div className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" className="flex items-center gap-2">
                 <img
-                  src="https://i.pinimg.com/736x/d2/e3/69/d2e369e5c82b185a2feffcd9da115234.jpg"
-                  alt="User avatar"
-                  className="h-8 w-8 rounded-full"
+                    src={photoUrl || "/placeholder.svg"}
+                    alt="User avatar"
+                    className="h-8 w-8 rounded-full"
                 />
+                {username && <span className="font-medium text-sm">{username}</span>}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
