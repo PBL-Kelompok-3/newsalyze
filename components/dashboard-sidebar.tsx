@@ -14,40 +14,138 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { auth, db } from "@/lib/firebase"
+import { collection, getDocs, query, where, orderBy } from "firebase/firestore"
+import { useEffect } from "react"
+import { Timestamp } from "firebase/firestore"
+import { doc, updateDoc, getDoc } from "firebase/firestore"
+import { deleteDoc } from "firebase/firestore"
+import { useSummary } from "@/app/context/SummaryContext"
 
 type HistoryItem = {
   id: string
   title: string
+  summary?: string
   isSelected?: boolean
 }
 
 export function DashboardSidebar() {
   const { state } = useSidebar()
+  const { setSummary, setInputText, setShowSummary } = useSummary()
+
   const [historyItems, setHistoryItems] = useState<{
     today: HistoryItem[]
     lastWeek: HistoryItem[]
     older: HistoryItem[]
-  }>({
-    today: [
-      { id: "1", title: "Sign in dan Sign up", isSelected: true },
-      { id: "2", title: "History 1" },
-    ],
-    lastWeek: [
-      { id: "3", title: "History 1" },
-      { id: "4", title: "History 1" },
-    ],
-    older: [
-      { id: "5", title: "History 1" },
-      { id: "6", title: "History 1" },
-    ],
-  })
+  }>({ today: [], lastWeek: [], older: [] });
 
-  const selectHistoryItem = (id: string) => {
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const user = auth.currentUser
+      if (!user) return
+
+      const q = query(
+          collection(db, "users", user.uid, "summaries"),
+          orderBy("createdAt", "desc")
+      )
+
+      const snapshot = await getDocs(q)
+
+      const today: HistoryItem[] = []
+      const lastWeek: HistoryItem[] = []
+      const older: HistoryItem[] = []
+
+      const now = new Date()
+      const todayDate = now.toDateString()
+
+      snapshot.forEach((doc) => {
+        const data = doc.data()
+        const createdAt = data.createdAt?.toDate?.() as Date
+        if (!createdAt) return
+
+        const diffDays = Math.floor(
+            (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+        )
+
+        const item = {
+          id: doc.id,
+          title: doc.data().title || "Ringkasan",
+          createdAt: doc.data().createdAt?.toDate(),
+        };
+
+        if (createdAt.toDateString() === todayDate) {
+          today.push(item)
+        } else if (diffDays <= 7) {
+          lastWeek.push(item)
+        } else {
+          older.push(item)
+        }
+      })
+
+      setHistoryItems({ today, lastWeek, older })
+    }
+
+    fetchHistory()
+  }, [])
+
+  const startNewChat = () => {
+    setInputText("")
+    setSummary("")
+    setShowSummary(false) // << ini penting supaya tampilan reset ke form input
+    setHistoryItems(prev => {
+      const reset = (items: HistoryItem[]) =>
+          items.map(item => ({ ...item, isSelected: false }))
+      return {
+        today: reset(prev.today),
+        lastWeek: reset(prev.lastWeek),
+        older: reset(prev.older),
+      }
+    })
+  }
+
+  const selectHistoryItem = async (id: string) => {
+    const user = auth.currentUser
+    if (!user) return
+
+    const ref = doc(db, "users", user.uid, "summaries", id)
+    const docSnap = await getDoc(ref)
+
+    if (docSnap.exists()) {
+      const data = docSnap.data()
+
+      const updateSection = (items: HistoryItem[]) =>
+          items.map((item) =>
+              item.id === id
+                  ? { ...item, isSelected: true, summary: data.summary }
+                  : { ...item, isSelected: false }
+          )
+
+      setHistoryItems({
+        today: updateSection(historyItems.today),
+        lastWeek: updateSection(historyItems.lastWeek),
+        older: updateSection(historyItems.older),
+      })
+
+      setSummary(data.summary) // Kirim ke tampilan utama
+      setInputText(data.text)
+
+      // OPTIONAL: Kirim summary ke komponen utama
+      console.log("Summary dipilih:", data.summary)
+    }
+  }
+
+  const renameHistoryItem = async (id: string, newTitle: string) => {
+    const user = auth.currentUser
+    if (!user) return
+
+    // Update di Firestore
+    await updateDoc(doc(db, "users", user.uid, "summaries", id), {
+      title: newTitle,
+    })
+
+    // Update di local state
     const updateSection = (items: HistoryItem[]) =>
-      items.map((item) => ({
-        ...item,
-        isSelected: item.id === id,
-      }))
+        items.map((item) => (item.id === id ? { ...item, title: newTitle } : item))
 
     setHistoryItems({
       today: updateSection(historyItems.today),
@@ -56,26 +154,22 @@ export function DashboardSidebar() {
     })
   }
 
-  const renameHistoryItem = (id: string, newTitle: string) => {
-    const updateSection = (items: HistoryItem[]) =>
-      items.map((item) => (item.id === id ? { ...item, title: newTitle } : item))
+  const deleteHistoryItem = async (id: string) => {
+    const user = auth.currentUser
+    if (!user) return
 
-    setHistoryItems({
-      today: updateSection(historyItems.today),
-      lastWeek: updateSection(historyItems.lastWeek),
-      older: updateSection(historyItems.older),
-    })
-  }
+    // Hapus di Firestore
+    await deleteDoc(doc(db, "users", user.uid, "summaries", id))
 
-  const deleteHistoryItem = (id: string) => {
+    // Update state lokal
     const filterSection = (items: HistoryItem[]) => items.filter((item) => item.id !== id)
-
     setHistoryItems({
       today: filterSection(historyItems.today),
       lastWeek: filterSection(historyItems.lastWeek),
       older: filterSection(historyItems.older),
     })
   }
+
 
   const isCollapsed = state === "collapsed"
 
@@ -89,8 +183,9 @@ export function DashboardSidebar() {
       <SidebarContent>
         <div className="p-2">
           <Button
-            variant="outline"
-            className={`w-full justify-start gap-2 mb-2 ${isCollapsed ? "justify-center" : ""}`}
+              onClick={startNewChat}
+              variant="outline"
+              className={`w-full justify-start gap-2 mb-2 ${isCollapsed ? "justify-center" : ""}`}
           >
             <PlusCircle className="h-4 w-4" />
             {!isCollapsed && <span>Chat Baru</span>}

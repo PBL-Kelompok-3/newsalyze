@@ -14,16 +14,16 @@ import { signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import Logo from "@/components/logo";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useSummary } from "@/app/context/SummaryContext"
+import { generateTitle } from "@/lib/utils";
 
 export function DashboardContent() {
-  const [inputValue, setInputValue] = useState("");
+  const { inputText, setInputText, summary, setSummary, showSummary, setShowSummary } = useSummary()
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
-  const [summaryText, setSummaryText] = useState("");
   const [showExportOptions, setShowExportOptions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
@@ -31,10 +31,10 @@ export function DashboardContent() {
   useEffect(() => {
     if (textareaRef.current) {
       const shouldExpand =
-          inputValue.length > 100 || inputValue.split("\n").length > 3;
+          inputText.length > 100 || inputText.split("\n").length > 3;
       setIsExpanded(shouldExpand);
     }
-  }, [inputValue]);
+  }, [inputText]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -52,6 +52,12 @@ export function DashboardContent() {
     fetchUserData();
   }, []);
 
+  useEffect(() => {
+    if (summary) {
+      setShowSummary(true);
+    }
+  }, [summary]);
+
   const handleEditProfile = () => router.push("/profile/edit");
 
   const handleLogout = async () => {
@@ -65,27 +71,38 @@ export function DashboardContent() {
   };
 
   const handleSummarize = async () => {
-    if (!inputValue.trim()) {
+    if (!inputText.trim()) {
       toast.error("Silakan masukkan berita atau URL berita");
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await fetch("http://34.143.238.108:8000/summarize", {
+      const res = await fetch("http://34.124.234.224:8000/summarize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: inputValue }),
+        body: JSON.stringify({ text: inputText }),
       });
 
       if (!res.ok) throw new Error("Gagal fetch ringkasan");
 
       const data = await res.json();
-      setSummaryText(data.summary);
+      setSummary(data.summary);
       setShowSummary(true);
       toast.success("Analisis berita berhasil");
+
+      // Simpan ke Firestore
+      const user = auth.currentUser;
+      if (user) {
+        await addDoc(collection(db, "users", user.uid, "summaries"), {
+          title: generateTitle(inputText),
+          text: inputText,
+          summary: data.summary,
+          createdAt: serverTimestamp(),
+        });
+      }
     } catch (error) {
       console.error(error);
       toast.error("Gagal menganalisis berita");
@@ -96,7 +113,7 @@ export function DashboardContent() {
 
   const handleCopy = () => {
     navigator.clipboard
-      .writeText(summaryText)
+      .writeText(summary)
       .then(() => toast.success("Teks berhasil disalin"))
       .catch(() => toast.error("Gagal menyalin teks"));
   };
@@ -106,7 +123,7 @@ export function DashboardContent() {
     setShowExportOptions(false);
 
     if (format === "txt") {
-      const blob = new Blob([summaryText], { type: "text/plain" });
+      const blob = new Blob([summary], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -119,7 +136,7 @@ export function DashboardContent() {
   };
 
   const handleFocus = () => {
-    if (inputValue.length > 0) {
+    if (inputText.length > 0) {
       setIsExpanded(true);
     }
   };
@@ -167,7 +184,7 @@ export function DashboardContent() {
             {/* TEKS ASLI */}
             <div className="bg-gray-100 p-4 border border-gray-300 rounded-lg">
               <h3 className="font-semibold mb-2">Teks Asli:</h3>
-              {inputValue.split("\n\n").map((para, i) => (
+              {inputText.split("\n\n").map((para, i) => (
                 <p key={i} className="text-sm text-gray-800 mb-2">
                   {para}
                 </p>
@@ -178,7 +195,7 @@ export function DashboardContent() {
             <div className="bg-white p-6 border border-gray-200 rounded-lg flex flex-col justify-between space-y-4">
               <div>
                 <h3 className="font-semibold mb-2">Ringkasan:</h3>
-                {summaryText.split("\n\n").map((para, i) => (
+                {summary.split("\n\n").map((para, i) => (
                   <p key={i}>{para}</p>
                 ))}
               </div>
@@ -253,8 +270,8 @@ export function DashboardContent() {
                   <textarea
                     ref={textareaRef}
                     placeholder="Silahkan isi berita yang ingin Anda ringkas..."
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
                     onFocus={handleFocus}
                     className={`w-full resize-none border-0 p-4 text-gray-900 shadow-none focus-visible:ring-0 focus:outline-none ${
                       isExpanded ? "min-h-[150px] max-h-[300px]" : "h-[52px]"

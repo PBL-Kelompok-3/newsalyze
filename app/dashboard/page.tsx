@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { auth } from "@/lib/firebase"
 import { signOut } from "firebase/auth"
 import { toast } from "react-hot-toast"
+import { SummaryProvider } from "@/app/context/SummaryContext"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -28,11 +29,13 @@ export default function DashboardPage() {
   }, [router])
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex h-screen w-full overflow-hidden">
-        <DashboardSidebar />
-        <DashboardContent />
-      </div>
-    </SidebarProvider>
+      <SidebarProvider defaultOpen={true}>
+        <SummaryProvider>
+          <div className="flex h-screen w-full overflow-hidden">
+            <DashboardSidebar />
+            <DashboardContent />
+          </div>
+        </SummaryProvider>
+      </SidebarProvider>
   )
 }
