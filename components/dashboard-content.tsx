@@ -17,14 +17,19 @@ import Logo from "@/components/logo";
 import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useSummary } from "@/app/context/SummaryContext"
 import { generateTitle } from "@/lib/utils";
+import { nanoid } from "nanoid";
+import { saveAs } from "file-saver";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import jsPDF from "jspdf";
 
 export function DashboardContent() {
-  const { inputText, setInputText, summary, setSummary, showSummary, setShowSummary } = useSummary()
+  const { inputText, setInputText, summary, setSummary, showSummary, setShowSummary, recommendations, setRecommendations } = useSummary()
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
 
@@ -70,6 +75,113 @@ export function DashboardContent() {
     }
   };
 
+  async function getOGImage(url: string): Promise<string> {
+    try {
+      const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+      return data?.data?.image?.url || "/placeholder.png";
+    } catch {
+      return "/placeholder.png";
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://34.124.192.85:8000/summarize-file", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        toast.error(data.error);
+      } else {
+        setInputText(data.text);
+        setSummary(data.summary);
+        setShowSummary(true);
+        toast.success("Berhasil menganalisis file");
+
+        const user = auth.currentUser;
+        if (user) {
+          // Ambil preferensi user
+          let preferredCategories = ["umum"];
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.preferred_categories) {
+              preferredCategories = userData.preferred_categories;
+            }
+          }
+
+          // Fetch rekomendasi
+          const recRes = await fetch("http://34.142.231.133:5000/recommendations/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: data.text,
+              summary: data.summary,
+              preferred_categories: preferredCategories,
+              alpha: 0.6,
+              beta: 0.3,
+              gamma: 0.1,
+              n_recommendations: 5,
+            }),
+          });
+
+          let recsWithImages = [];
+          if (recRes.ok) {
+            const recData = await recRes.json();
+            recsWithImages = await Promise.all(
+                recData.recommendations.map(async (rec) => ({
+                  ...rec,
+                  imageUrl: await getOGImage(rec.source_url),
+                }))
+            );
+            setRecommendations(recsWithImages);
+          }
+
+          // Simpan ke Firestore
+          await addDoc(collection(db, "users", user.uid, "summaries"), {
+            title: generateTitle(data.text),
+            text: data.text,
+            summary: data.summary,
+            recommendations: recsWithImages.map((rec) => ({
+              article_id: rec.article_id,
+              category: rec.category,
+              similarity_score: rec.similarity_score,
+              source_url: rec.source_url,
+              imageUrl: rec.imageUrl,
+            })),
+            createdAt: serverTimestamp(),
+          });
+        }
+      }
+
+      const shareId = nanoid(10);
+
+      await addDoc(collection(db, "shared_summaries"), {
+        shareId,
+        text: data.text,
+        summary: data.summary,
+        recommendations: recsWithImages,
+        createdAt: serverTimestamp(),
+      });
+
+    } catch (err) {
+      toast.error("Gagal upload file");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSummarize = async () => {
     if (!inputText.trim()) {
       toast.error("Silakan masukkan berita atau URL berita");
@@ -78,7 +190,9 @@ export function DashboardContent() {
 
     setIsLoading(true);
     try {
-      const res = await fetch("http://34.124.234.224:8000/summarize", {
+      const user = auth.currentUser; // ⬅️ Ditaruh di awal
+
+      const res = await fetch("http://34.124.192.85:8000/summarize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -90,19 +204,82 @@ export function DashboardContent() {
 
       const data = await res.json();
       setSummary(data.summary);
+
+      // Fetch preferensi user
+      let preferredCategories = ["umum"];
+      if (user) {
+        const userDocSnap = await getDoc(doc(db, "users", user.uid));
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          if (userData.preferred_categories) {
+            preferredCategories = userData.preferred_categories;
+          }
+        }
+      }
+
+      // Rekomendasi berita
+      const recRes = await fetch("http://34.142.231.133:5000/recommendations/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: inputText,
+          summary: data.summary,
+          preferred_categories: preferredCategories,
+          alpha: 0.6,
+          beta: 0.3,
+          gamma: 0.1,
+          n_recommendations: 5,
+        }),
+      });
+
+      let recsWithImages = [];
+
+      if (recRes.ok) {
+        const recData = await recRes.json();
+
+        recsWithImages = await Promise.all(
+            recData.recommendations.map(async (rec) => ({
+              ...rec,
+              imageUrl: await getOGImage(rec.source_url),
+            }))
+        );
+
+        setRecommendations(recsWithImages);
+      } else {
+        toast.error("Gagal memuat rekomendasi");
+      }
+
       setShowSummary(true);
       toast.success("Analisis berita berhasil");
 
-      // Simpan ke Firestore
-      const user = auth.currentUser;
       if (user) {
         await addDoc(collection(db, "users", user.uid, "summaries"), {
           title: generateTitle(inputText),
           text: inputText,
           summary: data.summary,
+          recommendations: recsWithImages.map((rec) => ({
+            article_id: rec.article_id,
+            category: rec.category,
+            similarity_score: rec.similarity_score,
+            source_url: rec.source_url,
+            imageUrl: rec.imageUrl,
+          })),
           createdAt: serverTimestamp(),
         });
       }
+
+      const shareId = nanoid(10); // misal hasil: "ab3f9d12c"
+
+      await addDoc(collection(db, "shared_summaries"), {
+        shareId,
+        text: inputText,
+        summary: data.summary,
+        recommendations: recsWithImages,
+        createdAt: serverTimestamp(),
+      });
+
     } catch (error) {
       console.error(error);
       toast.error("Gagal menganalisis berita");
@@ -119,20 +296,89 @@ export function DashboardContent() {
   };
 
   const handleExport = (format: string) => {
+    if (!inputText || !summary) {
+      toast.error("Tidak ada data untuk diekspor");
+      return;
+    }
+
     toast.success(`Mengekspor ke format ${format.toUpperCase()}`);
     setShowExportOptions(false);
 
+    const combinedText = `Teks Asli:\n${inputText}\n\nHasil Ringkasan:\n${summary}`;
+
     if (format === "txt") {
-      const blob = new Blob([summary], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `newsalyze-summary.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const blob = new Blob([combinedText], { type: "text/plain" });
+      saveAs(blob, "newsalyze-summary.txt");
     }
+
+    if (format === "pdf") {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 10;
+      const maxLineWidth = pageWidth - margin * 2;
+
+      doc.setFont("times", "normal");
+      doc.setFontSize(12);
+
+      // Teks asli
+      doc.text("Teks Asli:", margin, 10, { align: "left" });
+      doc.setFontSize(11);
+      let y = 18;
+      doc.splitTextToSize(inputText, maxLineWidth).forEach(line => {
+        doc.text(line, margin, y, { align: "justify" });
+        y += 6;
+      });
+
+      // Ringkasan
+      y += 8;
+      doc.setFontSize(12);
+      doc.text("Hasil Ringkasan:", margin, y, { align: "left" });
+      y += 8;
+      doc.setFontSize(11);
+      doc.splitTextToSize(summary, maxLineWidth).forEach(line => {
+        doc.text(line, margin, y, { align: "justify" });
+        y += 6;
+      });
+
+      doc.save("newsalyze-summary.pdf");
+    }
+  };
+
+  const handleExportDocx = () => {
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: "Teks Asli:", bold: true, size: 28 })],
+            }),
+            ...inputText.split("\n").map((line) =>
+                new Paragraph({
+                  children: [new TextRun({ text: line, size: 24 })],
+                  alignment: "JUSTIFIED",
+                })
+            ),
+            new Paragraph({ text: "" }),
+            new Paragraph({
+              children: [new TextRun({ text: "Hasil Ringkasan:", bold: true, size: 28 })],
+            }),
+            ...summary.split("\n").map((line) =>
+                new Paragraph({
+                  children: [new TextRun({ text: line, size: 24 })],
+                  alignment: "JUSTIFIED",
+                })
+            ),
+          ],
+        },
+      ],
+    });
+
+    Packer.toBlob(doc).then((blob) => {
+      saveAs(blob, "newsalyze-summary.docx");
+      toast.success("Berhasil ekspor ke DOCX");
+    }).catch(() => {
+      toast.error("Gagal ekspor ke DOCX");
+    });
   };
 
   const handleFocus = () => {
@@ -140,6 +386,25 @@ export function DashboardContent() {
       setIsExpanded(true);
     }
   };
+
+  function formatTitleFromId(id: string): string {
+    const parts = id.split("-").slice(1); // buang timestamp
+    return parts.map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  }
+
+  function capitalizeSentences(text: string): string {
+    return text
+        .split(/([.!?])\s*/) // pisahkan berdasarkan tanda akhir kalimat
+        .map((part, i, arr) => {
+          if (i % 2 === 0) {
+            return part.trim().charAt(0).toUpperCase() + part.trim().slice(1);
+          } else {
+            return part; // bagian tanda baca dan spasi setelahnya
+          }
+        })
+        .join("")
+        .trim();
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -215,7 +480,7 @@ export function DashboardContent() {
                     <DropdownMenuItem onClick={() => handleExport("pdf")}>
                       .pdf
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport("docx")}>
+                    <DropdownMenuItem onClick={handleExportDocx}>
                       .docx
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleExport("txt")}>
@@ -231,31 +496,40 @@ export function DashboardContent() {
               <h3 className="font-semibold text-lg mb-2">
                 Rekomendasi Berita untuk Anda
               </h3>
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-4 border-b pb-4 last:border-b-0"
-                >
-                  <img
-                    src={`https://source.unsplash.com/100x100/?news,${i}`} // Ganti dengan URL thumbnail berita asli
-                    alt="Thumbnail Berita"
-                    className="w-24 h-16 object-cover rounded-md"
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium text-sm">
-                      Judul berita menarik ke-{i + 1}
-                    </span>
-                    <span className="text-xs text-gray-500 mt-1">
-                      Kategori •{" "}
-                      {new Date().toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {recommendations.length > 0 ? (
+                  recommendations.map((rec, i) => (
+                      <div
+                          key={i}
+                          className="flex items-start gap-4 border-b pb-4 last:border-b-0"
+                      >
+                        <img
+                            src={rec.imageUrl}
+                            alt="Thumbnail Berita"
+                            className="w-24 h-16 object-cover rounded-md"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.png";
+                            }}
+                        />
+
+                        <div className="flex flex-col">
+                          <a
+                              href={rec.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-sm text-blue-600 hover:underline"
+                          >
+                            {formatTitleFromId(rec.article_id)}
+                          </a>
+
+                          <span className="text-xs text-gray-500 mt-1">
+                          Kategori : {capitalizeSentences(rec.category)}
+                        </span>
+                        </div>
+                      </div>
+                  ))
+              ) : (
+                  <p className="text-sm text-gray-500">Belum ada rekomendasi tersedia.</p>
+              )}
             </div>
           </div>
         ) : (
@@ -290,7 +564,15 @@ export function DashboardContent() {
                       variant="ghost"
                       size="icon"
                       className="text-black hover:bg-gray-200"
+                      onClick={() => fileInputRef.current?.click()}
                     >
+                      <input
+                          type="file"
+                          accept=".pdf,.docx,.txt"
+                          style={{ display: "none" }}
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                      />
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>

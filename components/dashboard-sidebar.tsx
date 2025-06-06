@@ -15,23 +15,27 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { auth, db } from "@/lib/firebase"
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore"
+import { addDoc, collection, serverTimestamp, getDocs, query, where, orderBy } from "firebase/firestore"
 import { useEffect } from "react"
 import { Timestamp } from "firebase/firestore"
 import { doc, updateDoc, getDoc } from "firebase/firestore"
 import { deleteDoc } from "firebase/firestore"
 import { useSummary } from "@/app/context/SummaryContext"
+import { toast } from "react-hot-toast";
+import { nanoid } from "nanoid";
 
 type HistoryItem = {
   id: string
   title: string
   summary?: string
   isSelected?: boolean
+  isFavorite?: boolean
 }
 
 export function DashboardSidebar() {
   const { state } = useSidebar()
-  const { setSummary, setInputText, setShowSummary } = useSummary()
+  const { setSummary, setInputText, setShowSummary, setRecommendations } = useSummary();
+  const [favorites, setFavorites] = useState<HistoryItem[]>([]);
 
   const [historyItems, setHistoryItems] = useState<{
     today: HistoryItem[]
@@ -41,52 +45,57 @@ export function DashboardSidebar() {
 
   useEffect(() => {
     const fetchHistory = async () => {
-      const user = auth.currentUser
-      if (!user) return
+      const user = auth.currentUser;
+      if (!user) return;
 
       const q = query(
           collection(db, "users", user.uid, "summaries"),
           orderBy("createdAt", "desc")
-      )
+      );
 
-      const snapshot = await getDocs(q)
+      const snapshot = await getDocs(q);
 
-      const today: HistoryItem[] = []
-      const lastWeek: HistoryItem[] = []
-      const older: HistoryItem[] = []
+      const today: HistoryItem[] = [];
+      const lastWeek: HistoryItem[] = [];
+      const older: HistoryItem[] = [];
+      const fav: HistoryItem[] = [];
 
-      const now = new Date()
-      const todayDate = now.toDateString()
+      const now = new Date();
+      const todayDate = now.toDateString();
 
       snapshot.forEach((doc) => {
-        const data = doc.data()
-        const createdAt = data.createdAt?.toDate?.() as Date
-        if (!createdAt) return
+        const data = doc.data();
+        const createdAt = data.createdAt?.toDate?.() as Date;
+        if (!createdAt) return;
 
         const diffDays = Math.floor(
             (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
-        )
+        );
 
         const item = {
           id: doc.id,
-          title: doc.data().title || "Ringkasan",
-          createdAt: doc.data().createdAt?.toDate(),
+          title: data.title || "Ringkasan",
+          isSelected: false,
+          isFavorite: data.isFavorite || false,
         };
 
-        if (createdAt.toDateString() === todayDate) {
-          today.push(item)
+        if (item.isFavorite) {
+          fav.push(item);
+        } else if (createdAt.toDateString() === todayDate) {
+          today.push(item);
         } else if (diffDays <= 7) {
-          lastWeek.push(item)
+          lastWeek.push(item);
         } else {
-          older.push(item)
+          older.push(item);
         }
-      })
+      });
 
-      setHistoryItems({ today, lastWeek, older })
-    }
+      setFavorites(fav); // SET favorites
+      setHistoryItems({ today, lastWeek, older });
+    };
 
-    fetchHistory()
-  }, [])
+    fetchHistory();
+  }, []);
 
   const startNewChat = () => {
     setInputText("")
@@ -126,8 +135,10 @@ export function DashboardSidebar() {
         older: updateSection(historyItems.older),
       })
 
-      setSummary(data.summary) // Kirim ke tampilan utama
-      setInputText(data.text)
+      setSummary(data.summary); // Kirim ke tampilan utama
+      setInputText(data.text);
+      setShowSummary(true);
+      setRecommendations(data.recommendations || []);
 
       // OPTIONAL: Kirim summary ke komponen utama
       console.log("Summary dipilih:", data.summary)
@@ -170,6 +181,34 @@ export function DashboardSidebar() {
     })
   }
 
+  const handleShare = async (id: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const summaryRef = doc(db, "users", user.uid, "summaries", id);
+    const summarySnap = await getDoc(summaryRef);
+
+    if (!summarySnap.exists()) {
+      toast.error("Ringkasan tidak ditemukan");
+      return;
+    }
+
+    const data = summarySnap.data();
+    const shareId = nanoid(10);
+
+    await addDoc(collection(db, "shared_summaries"), {
+      shareId,
+      text: data.text,
+      summary: data.summary,
+      recommendations: data.recommendations || [],
+      createdAt: serverTimestamp(),
+    });
+
+    const shareUrl = `${window.location.origin}/share/${shareId}`;
+    await navigator.clipboard.writeText(shareUrl);
+    toast.success("Link berhasil disalin ke clipboard");
+  };
+
 
   const isCollapsed = state === "collapsed"
 
@@ -208,6 +247,78 @@ export function DashboardSidebar() {
         <div className="py-1">
           {!isCollapsed && (
             <div className="px-4 py-2">
+              {favorites.length > 0 && (
+                  <>
+                    <div className="px-4 py-2">
+                      <h2 className="text-xs font-medium text-yellow-700">Favorit</h2>
+                    </div>
+                    <SidebarMenu>
+                      {favorites.map((item) => (
+                          <SidebarMenuItem key={item.id} className="group">
+                            <div className="flex items-center w-full">
+                              <SidebarMenuButton
+                                  isActive={item.isSelected}
+                                  onClick={() => selectHistoryItem(item.id)}
+                                  className={`${item.isSelected ? "bg-yellow-500 text-white" : ""} flex-grow`}
+                              >
+                                {!isCollapsed && <span className="ml-1">{item.title}</span>}
+                              </SidebarMenuButton>
+                              {!isCollapsed && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100">
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-white text-black border-gray-200">
+                                      <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100" onClick={() => handleShare(item.id)}>
+                                        <Share className="h-4 w-4" />
+                                        <span>Share</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                          className="flex items-center gap-2 focus:bg-gray-100"
+                                          onClick={() => {
+                                            const newTitle = prompt("Masukkan nama baru:", item.title)
+                                            if (newTitle) renameHistoryItem(item.id, newTitle)
+                                          }}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                        <span>Rename</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                          className="flex items-center gap-2 focus:bg-gray-100"
+                                          onClick={async () => {
+                                            const user = auth.currentUser;
+                                            if (!user) return;
+
+                                            const isNowFavorite = !(item as any).isFavorite;
+                                            await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
+                                              isFavorite: isNowFavorite,
+                                            });
+                                            toast.success(isNowFavorite ? "Ditambahkan ke Favorit" : "Dihapus dari Favorit");
+                                            window.location.reload();
+                                          }}
+                                      >
+                                        <Star className="h-4 w-4" />
+                                        <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                          className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
+                                          onClick={() => deleteHistoryItem(item.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span>Delete</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                              )}
+                            </div>
+                          </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </>
+              )}
+
               <h2 className="text-xs font-medium">Hari Ini</h2>
             </div>
           )}
@@ -232,7 +343,7 @@ export function DashboardSidebar() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-white text-black border-gray-200">
-                        <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                        <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100" onClick={() => handleShare(item.id)}>
                           <Share className="h-4 w-4" />
                           <span>Share</span>
                         </DropdownMenuItem>
@@ -246,9 +357,22 @@ export function DashboardSidebar() {
                           <Pencil className="h-4 w-4" />
                           <span>Rename</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                        <DropdownMenuItem
+                            className="flex items-center gap-2 focus:bg-gray-100"
+                            onClick={async () => {
+                              const user = auth.currentUser;
+                              if (!user) return;
+
+                              const isNowFavorite = !(item as any).isFavorite;
+                              await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
+                                isFavorite: isNowFavorite,
+                              });
+                              toast.success(isNowFavorite ? "Ditambahkan ke Favorit" : "Dihapus dari Favorit");
+                              window.location.reload();
+                            }}
+                        >
                           <Star className="h-4 w-4" />
-                          <span>Favorite</span>
+                          <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
@@ -291,7 +415,7 @@ export function DashboardSidebar() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-white text-black border-gray-200">
-                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100" onClick={() => handleShare(item.id)}>
                             <Share className="h-4 w-4" />
                             <span>Share</span>
                           </DropdownMenuItem>
@@ -305,9 +429,22 @@ export function DashboardSidebar() {
                             <Pencil className="h-4 w-4" />
                             <span>Rename</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                          <DropdownMenuItem
+                              className="flex items-center gap-2 focus:bg-gray-100"
+                              onClick={async () => {
+                                const user = auth.currentUser;
+                                if (!user) return;
+
+                                const isNowFavorite = !(item as any).isFavorite;
+                                await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
+                                  isFavorite: isNowFavorite,
+                                });
+                                toast.success(isNowFavorite ? "Ditambahkan ke Favorit" : "Dihapus dari Favorit");
+                                window.location.reload();
+                              }}
+                          >
                             <Star className="h-4 w-4" />
-                            <span>Favorite</span>
+                            <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
@@ -347,7 +484,7 @@ export function DashboardSidebar() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-white text-black border-gray-200">
-                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100" onClick={() => handleShare(item.id)}>
                             <Share className="h-4 w-4" />
                             <span>Share</span>
                           </DropdownMenuItem>
@@ -361,9 +498,22 @@ export function DashboardSidebar() {
                             <Pencil className="h-4 w-4" />
                             <span>Rename</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center gap-2 focus:bg-gray-100">
+                          <DropdownMenuItem
+                              className="flex items-center gap-2 focus:bg-gray-100"
+                              onClick={async () => {
+                                const user = auth.currentUser;
+                                if (!user) return;
+
+                                const isNowFavorite = !(item as any).isFavorite;
+                                await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
+                                  isFavorite: isNowFavorite,
+                                });
+                                toast.success(isNowFavorite ? "Ditambahkan ke Favorit" : "Dihapus dari Favorit");
+                                window.location.reload();
+                              }}
+                          >
                             <Star className="h-4 w-4" />
-                            <span>Favorite</span>
+                            <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"

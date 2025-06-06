@@ -6,18 +6,18 @@ import { useEffect, useState } from "react"
 
 export default function SharePage() {
     const params = useParams();
-    const id = params?.id?.toString(); // ambil dari URL /share/[id]
+    const shareId = params?.shareId?.toString();
     const [data, setData] = useState<any>(null);
 
     useEffect(() => {
         const fetchShared = async () => {
-            if (!id || typeof id !== "string") return;
+            if (!shareId || typeof shareId !== "string") return;
 
-            console.log("🔍 Share ID:", id);
+            console.log("🔍 Share ID:", shareId);
 
             const q = query(
                 collection(db, "shared_summaries"),
-                where("shareId", "==", id)
+                where("shareId", "==", shareId) // ✅ diperbaiki di sini
             );
             const snapshot = await getDocs(q);
 
@@ -30,9 +30,31 @@ export default function SharePage() {
         };
 
         fetchShared();
-    }, [id]);
+    }, [shareId]);
 
     if (!data) return <p className="text-center mt-10">Loading...</p>;
+
+    function formatTitle(id: string): string {
+        return id
+            .split("-")
+            .slice(1) // buang timestamp kalau ada
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+    }
+
+    function capitalizeSentences(text: string): string {
+        return text
+            .split(/([.!?])\s*/) // pisahkan berdasarkan tanda akhir kalimat
+            .map((part, i, arr) => {
+                if (i % 2 === 0) {
+                    return part.trim().charAt(0).toUpperCase() + part.trim().slice(1);
+                } else {
+                    return part; // bagian tanda baca dan spasi setelahnya
+                }
+            })
+            .join("")
+            .trim();
+    }
 
     return (
         <div className="max-w-3xl mx-auto p-6">
@@ -54,9 +76,9 @@ export default function SharePage() {
                             rel="noopener noreferrer"
                             className="text-blue-600 underline"
                         >
-                            {rec.article_id}
+                            {formatTitle(rec.article_id)}
                         </a>{" "}
-                        - {rec.category}
+                        - {capitalizeSentences(rec.category)}
                     </li>
                 ))}
             </ul>
