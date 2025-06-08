@@ -100,7 +100,7 @@ export function DashboardContent() {
     formData.append("file", file)
 
     try {
-      const res = await fetch("http://34.124.244.236:8000/summarize-file", {
+      const res = await fetch("/api/summarize-file", {
         method: "POST",
         body: formData,
       })
@@ -131,7 +131,7 @@ export function DashboardContent() {
           setIsLoadingRecommendations(true)
 
           // Fetch rekomendasi
-          const recRes = await fetch("http://34.142.252.67:5000/recommendations/", {
+          const recRes = await fetch("/api/recommendations/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -193,6 +193,15 @@ export function DashboardContent() {
     }
   }
 
+  const isValidUrl = (text: string) => {
+    try {
+      new URL(text)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const handleSummarize = async () => {
     if (!inputText.trim()) {
       toast.error("Silakan masukkan berita atau URL berita")
@@ -203,13 +212,14 @@ export function DashboardContent() {
     try {
       const user = auth.currentUser // ⬅️ Ditaruh di awal
 
-      const res = await fetch("http://34.124.244.236:8000/summarize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: inputText }),
-      })
+      const res = await fetch(
+          isValidUrl(inputText) ? "/api/summarize-url" : "/api/summarize",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(isValidUrl(inputText) ? { url: inputText } : { text: inputText }),
+          }
+      )
 
       if (!res.ok) throw new Error("Gagal fetch ringkasan")
 
@@ -232,7 +242,7 @@ export function DashboardContent() {
       setIsLoadingRecommendations(true)
 
       // Rekomendasi berita
-      const recRes = await fetch("http://34.142.252.67:5000/recommendations/", {
+      const recRes = await fetch("/api/recommendations/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -331,28 +341,44 @@ export function DashboardContent() {
     if (format === "pdf") {
       const doc = new jsPDF()
       const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
       const margin = 10
       const maxLineWidth = pageWidth - margin * 2
 
       doc.setFont("times", "normal")
       doc.setFontSize(12)
 
-      // Teks asli
-      doc.text("Teks Asli:", margin, 10, { align: "left" })
+      let y = margin
+
+      doc.text("Teks Asli:", margin, y)
+      y += 8
       doc.setFontSize(11)
-      let y = 18
-      doc.splitTextToSize(inputText, maxLineWidth).forEach((line) => {
+      const inputLines = doc.splitTextToSize(inputText, maxLineWidth)
+      inputLines.forEach((line) => {
+        if (y + 6 > pageHeight - margin) {
+          doc.addPage()
+          y = margin
+        }
         doc.text(line, margin, y, { align: "justify" })
         y += 6
       })
 
-      // Ringkasan
       y += 8
       doc.setFontSize(12)
-      doc.text("Hasil Ringkasan:", margin, y, { align: "left" })
+      if (y + 6 > pageHeight - margin) {
+        doc.addPage()
+        y = margin
+      }
+      doc.text("Hasil Ringkasan:", margin, y)
       y += 8
+
       doc.setFontSize(11)
-      doc.splitTextToSize(summary, maxLineWidth).forEach((line) => {
+      const summaryLines = doc.splitTextToSize(summary, maxLineWidth)
+      summaryLines.forEach((line) => {
+        if (y + 6 > pageHeight - margin) {
+          doc.addPage()
+          y = margin
+        }
         doc.text(line, margin, y, { align: "justify" })
         y += 6
       })

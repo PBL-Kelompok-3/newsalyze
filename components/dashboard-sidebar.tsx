@@ -35,6 +35,7 @@ export function DashboardSidebar() {
   const { state } = useSidebar()
   const { setSummary, setInputText, setShowSummary, setRecommendations } = useSummary()
   const [favorites, setFavorites] = useState<HistoryItem[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
 
   const [historyItems, setHistoryItems] = useState<{
     today: HistoryItem[]
@@ -103,6 +104,14 @@ export function DashboardSidebar() {
         older: reset(prev.older),
       }
     })
+  }
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value.toLowerCase())
+  }
+
+  const filterItems = (items: HistoryItem[]) => {
+    return items.filter((item) => item.title.toLowerCase().includes(searchTerm))
   }
 
   const selectHistoryItem = async (id: string) => {
@@ -223,7 +232,7 @@ export function DashboardSidebar() {
           {!isCollapsed && (
             <div className="relative mb-2">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cari Berita..." className="pl-8" />
+              <Input placeholder="Cari Berita..." className="pl-8" value={searchTerm} onChange={handleSearchChange}/>
             </div>
           )}
 
@@ -319,7 +328,7 @@ export function DashboardSidebar() {
               </div>
 
               <SidebarMenu>
-                {historyItems.today.map((item) => (
+                {filterItems(historyItems.today).map((item) => (
                   <SidebarMenuItem key={item.id} className="group">
                     <div className="flex items-center w-full">
                       <SidebarMenuButton
@@ -390,7 +399,7 @@ export function DashboardSidebar() {
                   <h2 className="text-xs font-medium">Minggu Lalu</h2>
                 </div>
                 <SidebarMenu>
-                  {historyItems.lastWeek.map((item) => (
+                  {filterItems(historyItems.lastWeek).map((item) => (
                     <SidebarMenuItem key={item.id} className="group">
                       <div className="flex items-center w-full">
                         <SidebarMenuButton
@@ -466,7 +475,7 @@ export function DashboardSidebar() {
                   <h2 className="text-xs font-medium">Bulan Sebelumnya</h2>
                 </div>
                 <SidebarMenu>
-                  {historyItems.older.map((item) => (
+                  {filterItems(historyItems.older).map((item) => (
                     <SidebarMenuItem key={item.id} className="group">
                       <div className="flex items-center w-full">
                         <SidebarMenuButton

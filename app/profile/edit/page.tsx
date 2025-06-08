@@ -66,6 +66,16 @@ export default function EditProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      alert("Hanya file gambar yang diperbolehkan!");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Ukuran gambar maksimal 2MB!");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("image", file);
 
