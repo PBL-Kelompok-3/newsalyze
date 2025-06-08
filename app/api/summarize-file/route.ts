@@ -1,32 +1,35 @@
 // app/api/summarize-file/route.ts
 import { NextResponse } from "next/server"
-import { fetch, Agent, FormData as UndiciFormData } from "undici"
-import { fileFrom } from "undici/form-data"
+import { FormData } from "formdata-node"
+import { FormDataEncoder } from "form-data-encoder"
+import { Blob } from "fetch-blob"
+import { fetch, Agent } from "undici"
 
 export async function POST(req: Request) {
     const incomingFormData = await req.formData()
-
-    // Konversi ke FormData-nya undici (bukan native browser)
-    const formData = new UndiciFormData()
+    const formData = new FormData()
 
     for (const [key, value] of incomingFormData.entries()) {
         if (typeof value === "string") {
             formData.set(key, value)
         } else {
-            // File harus dikonversi ke fileFrom
-            const file = await fileFrom(value as Blob, value.name)
-            formData.set(key, file)
+            const blob = value as Blob
+            const arrayBuffer = await blob.arrayBuffer()
+            const buffer = Buffer.from(arrayBuffer)
+
+            const fblob = new Blob([buffer], { type: blob.type }) as any
+            formData.set(key, fblob, blob.name ?? "upload.dat")
         }
     }
 
-    const agent = new Agent({
-        connect: { rejectUnauthorized: false }, // Self-signed cert
-    })
+    const encoder = new FormDataEncoder(formData)
 
     const res = await fetch("https://34.124.244.236:443/summarize-file", {
         method: "POST",
-        body: formData,
-        dispatcher: agent,
+        body: encoder.encode(),
+        headers: encoder.headers,
+        duplex: "half",
+        dispatcher: new Agent({ connect: { rejectUnauthorized: false } }),
     })
 
     const data = await res.json()
