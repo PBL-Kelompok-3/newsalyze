@@ -9,6 +9,8 @@ import { Copy, Download, Loader2, ImageIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { toast } from "react-hot-toast"
 import { saveAs } from "file-saver"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 export default function SharePage() {
   const params = useParams()
@@ -95,9 +97,24 @@ export default function SharePage() {
       blob = new Blob([content], { type: "text/plain;charset=utf-8" })
       filename = "ringkasan-berita.txt"
     } else if (format === "pdf") {
-      // For PDF we would typically use a library like jsPDF
-      // This is a simplified version
-      toast.error("Fitur ekspor PDF akan segera tersedia")
+      const doc = new jsPDF()
+
+      doc.setFontSize(14)
+      doc.text("Ringkasan Berita", 14, 20)
+
+      doc.setFontSize(11)
+      doc.text("Teks Asli:", 14, 30)
+      const originalLines = doc.splitTextToSize(data.text, 180)
+      doc.text(originalLines, 14, 36)
+
+      let nextY = 36 + originalLines.length * 6
+
+      doc.text("Ringkasan:", 14, nextY)
+      const summaryLines = doc.splitTextToSize(data.summary, 180)
+      doc.text(summaryLines, 14, nextY + 6)
+
+      doc.save("ringkasan-berita.pdf")
+      toast.success("Dokumen PDF berhasil diunduh!")
       return
     }
 
