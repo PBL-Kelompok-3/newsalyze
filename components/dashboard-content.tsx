@@ -1,128 +1,137 @@
-"use client";
+"use client"
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { LogOut, Plus, Settings, Download, Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { signOut } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { toast } from "react-hot-toast";
-import Logo from "@/components/logo";
-import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import type React from "react"
+
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { LogOut, Plus, Settings, Download, Copy, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { signOut } from "firebase/auth"
+import { auth, db } from "@/lib/firebase"
+import { toast } from "react-hot-toast"
+import Logo from "@/components/logo"
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { useSummary } from "@/app/context/SummaryContext"
-import { generateTitle } from "@/lib/utils";
-import { nanoid } from "nanoid";
-import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, TextRun } from "docx";
-import jsPDF from "jspdf";
+import { generateTitle } from "@/lib/utils"
+import { nanoid } from "nanoid"
+import { saveAs } from "file-saver"
+import { Document, Packer, Paragraph, TextRun } from "docx"
+import jsPDF from "jspdf"
 
 export function DashboardContent() {
-  const { inputText, setInputText, summary, setSummary, showSummary, setShowSummary, recommendations, setRecommendations } = useSummary()
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showExportOptions, setShowExportOptions] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const router = useRouter();
+  const {
+    inputText,
+    setInputText,
+    summary,
+    setSummary,
+    showSummary,
+    setShowSummary,
+    recommendations,
+    setRecommendations,
+  } = useSummary()
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [showExportOptions, setShowExportOptions] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const router = useRouter()
 
   useEffect(() => {
     if (textareaRef.current) {
-      const shouldExpand =
-          inputText.length > 100 || inputText.split("\n").length > 3;
-      setIsExpanded(shouldExpand);
+      const shouldExpand = inputText.length > 100 || inputText.split("\n").length > 3
+      setIsExpanded(shouldExpand)
     }
-  }, [inputText]);
+  }, [inputText])
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
+      const user = auth.currentUser
+      if (!user) return
 
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userDoc = await getDoc(doc(db, "users", user.uid))
       if (userDoc.exists()) {
-        const data = userDoc.data();
-        setPhotoUrl(data.photoURL || null);
-        setUsername(data.username || null);
+        const data = userDoc.data()
+        setPhotoUrl(data.photoURL || null)
+        setUsername(data.username || null)
       }
-    };
+    }
 
-    fetchUserData();
-  }, []);
+    fetchUserData()
+  }, [])
 
   useEffect(() => {
     if (summary) {
-      setShowSummary(true);
+      setShowSummary(true)
     }
-  }, [summary]);
+  }, [summary])
 
-  const handleEditProfile = () => router.push("/profile/edit");
+  const handleEditProfile = () => router.push("/profile/edit")
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      toast.success("Berhasil logout");
-      router.replace("/sign-in");
+      await signOut(auth)
+      toast.success("Berhasil logout")
+      router.replace("/sign-in")
     } catch (error) {
-      toast.error("Gagal logout");
+      toast.error("Gagal logout")
     }
-  };
+  }
 
   async function getOGImage(url: string): Promise<string> {
     try {
-      const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
-      const data = await res.json();
-      return data?.data?.image?.url || "/placeholder.png";
+      const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`)
+      const data = await res.json()
+      return data?.data?.image?.url || "/placeholder.png"
     } catch {
-      return "/placeholder.png";
+      return "/placeholder.png"
     }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    setIsLoading(true);
-    const formData = new FormData();
-    formData.append("file", file);
+    setIsLoading(true)
+    const formData = new FormData()
+    formData.append("file", file)
 
     try {
-      const res = await fetch("http://34.124.192.85:8000/summarize-file", {
+      const res = await fetch("http://34.142.211.27:8000/summarize-file", {
         method: "POST",
         body: formData,
-      });
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (data.error) {
-        toast.error(data.error);
+        toast.error(data.error)
       } else {
-        setInputText(data.text);
-        setSummary(data.summary);
-        setShowSummary(true);
-        toast.success("Berhasil menganalisis file");
+        setInputText(data.text)
+        setSummary(data.summary)
+        setShowSummary(true)
+        toast.success("Berhasil menganalisis file")
 
-        const user = auth.currentUser;
+        const user = auth.currentUser
         if (user) {
           // Ambil preferensi user
-          let preferredCategories = ["umum"];
-          const userDoc = await getDoc(doc(db, "users", user.uid));
+          let preferredCategories = ["umum"]
+          const userDoc = await getDoc(doc(db, "users", user.uid))
           if (userDoc.exists()) {
-            const userData = userDoc.data();
+            const userData = userDoc.data()
             if (userData.preferred_categories) {
-              preferredCategories = userData.preferred_categories;
+              preferredCategories = userData.preferred_categories
             }
           }
 
+          // Set loading state untuk rekomendasi
+          setIsLoadingRecommendations(true)
+
           // Fetch rekomendasi
-          const recRes = await fetch("http://34.142.231.133:5000/recommendations/", {
+          const recRes = await fetch("http://34.124.244.236:5000/recommendations/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -134,19 +143,22 @@ export function DashboardContent() {
               gamma: 0.1,
               n_recommendations: 5,
             }),
-          });
+          })
 
-          let recsWithImages = [];
+          let recsWithImages = []
           if (recRes.ok) {
-            const recData = await recRes.json();
+            const recData = await recRes.json()
             recsWithImages = await Promise.all(
-                recData.recommendations.map(async (rec) => ({
-                  ...rec,
-                  imageUrl: await getOGImage(rec.source_url),
-                }))
-            );
-            setRecommendations(recsWithImages);
+              recData.recommendations.map(async (rec) => ({
+                ...rec,
+                imageUrl: await getOGImage(rec.source_url),
+              })),
+            )
+            setRecommendations(recsWithImages)
           }
+
+          setRecommendations(recsWithImages)
+          setIsLoadingRecommendations(false)
 
           // Simpan ke Firestore
           await addDoc(collection(db, "users", user.uid, "summaries"), {
@@ -161,11 +173,11 @@ export function DashboardContent() {
               imageUrl: rec.imageUrl,
             })),
             createdAt: serverTimestamp(),
-          });
+          })
         }
       }
 
-      const shareId = nanoid(10);
+      const shareId = nanoid(10)
 
       await addDoc(collection(db, "shared_summaries"), {
         shareId,
@@ -173,52 +185,54 @@ export function DashboardContent() {
         summary: data.summary,
         recommendations: recsWithImages,
         createdAt: serverTimestamp(),
-      });
-
+      })
     } catch (err) {
-      toast.error("Gagal upload file");
+      toast.error("Gagal upload file")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleSummarize = async () => {
     if (!inputText.trim()) {
-      toast.error("Silakan masukkan berita atau URL berita");
-      return;
+      toast.error("Silakan masukkan berita atau URL berita")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const user = auth.currentUser; // ⬅️ Ditaruh di awal
+      const user = auth.currentUser // ⬅️ Ditaruh di awal
 
-      const res = await fetch("http://34.124.192.85:8000/summarize", {
+      const res = await fetch("http://34.142.211.27:8000/summarize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ text: inputText }),
-      });
+      })
 
-      if (!res.ok) throw new Error("Gagal fetch ringkasan");
+      if (!res.ok) throw new Error("Gagal fetch ringkasan")
 
-      const data = await res.json();
-      setSummary(data.summary);
+      const data = await res.json()
+      setSummary(data.summary)
 
       // Fetch preferensi user
-      let preferredCategories = ["umum"];
+      let preferredCategories = ["umum"]
       if (user) {
-        const userDocSnap = await getDoc(doc(db, "users", user.uid));
+        const userDocSnap = await getDoc(doc(db, "users", user.uid))
         if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
+          const userData = userDocSnap.data()
           if (userData.preferred_categories) {
-            preferredCategories = userData.preferred_categories;
+            preferredCategories = userData.preferred_categories
           }
         }
       }
 
+      // Set loading state untuk rekomendasi
+      setIsLoadingRecommendations(true)
+
       // Rekomendasi berita
-      const recRes = await fetch("http://34.142.231.133:5000/recommendations/", {
+      const recRes = await fetch("http://34.124.244.236:5000/recommendations/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -230,29 +244,33 @@ export function DashboardContent() {
           alpha: 0.6,
           beta: 0.3,
           gamma: 0.1,
-          n_recommendations: 5,
+          n_recommendations: 10,
         }),
-      });
+      })
 
-      let recsWithImages = [];
+      let recsWithImages = []
 
       if (recRes.ok) {
-        const recData = await recRes.json();
+        const recData = await recRes.json()
 
         recsWithImages = await Promise.all(
-            recData.recommendations.map(async (rec) => ({
-              ...rec,
-              imageUrl: await getOGImage(rec.source_url),
-            }))
-        );
+          recData.recommendations.map(async (rec) => ({
+            ...rec,
+            imageUrl: await getOGImage(rec.source_url),
+          })),
+        )
 
-        setRecommendations(recsWithImages);
+        setRecommendations(recsWithImages)
       } else {
-        toast.error("Gagal memuat rekomendasi");
+        toast.error("Gagal memuat rekomendasi")
+        setIsLoadingRecommendations(false)
       }
 
-      setShowSummary(true);
-      toast.success("Analisis berita berhasil");
+      setRecommendations(recsWithImages)
+      setIsLoadingRecommendations(false)
+
+      setShowSummary(true)
+      toast.success("Analisis berita berhasil")
 
       if (user) {
         await addDoc(collection(db, "users", user.uid, "summaries"), {
@@ -267,10 +285,10 @@ export function DashboardContent() {
             imageUrl: rec.imageUrl,
           })),
           createdAt: serverTimestamp(),
-        });
+        })
       }
 
-      const shareId = nanoid(10); // misal hasil: "ab3f9d12c"
+      const shareId = nanoid(10) // misal hasil: "ab3f9d12c"
 
       await addDoc(collection(db, "shared_summaries"), {
         shareId,
@@ -278,71 +296,70 @@ export function DashboardContent() {
         summary: data.summary,
         recommendations: recsWithImages,
         createdAt: serverTimestamp(),
-      });
-
+      })
     } catch (error) {
-      console.error(error);
-      toast.error("Gagal menganalisis berita");
+      console.error(error)
+      toast.error("Gagal menganalisis berita")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleCopy = () => {
     navigator.clipboard
       .writeText(summary)
       .then(() => toast.success("Teks berhasil disalin"))
-      .catch(() => toast.error("Gagal menyalin teks"));
-  };
+      .catch(() => toast.error("Gagal menyalin teks"))
+  }
 
   const handleExport = (format: string) => {
     if (!inputText || !summary) {
-      toast.error("Tidak ada data untuk diekspor");
-      return;
+      toast.error("Tidak ada data untuk diekspor")
+      return
     }
 
-    toast.success(`Mengekspor ke format ${format.toUpperCase()}`);
-    setShowExportOptions(false);
+    toast.success(`Mengekspor ke format ${format.toUpperCase()}`)
+    setShowExportOptions(false)
 
-    const combinedText = `Teks Asli:\n${inputText}\n\nHasil Ringkasan:\n${summary}`;
+    const combinedText = `Teks Asli:\n${inputText}\n\nHasil Ringkasan:\n${summary}`
 
     if (format === "txt") {
-      const blob = new Blob([combinedText], { type: "text/plain" });
-      saveAs(blob, "newsalyze-summary.txt");
+      const blob = new Blob([combinedText], { type: "text/plain" })
+      saveAs(blob, "newsalyze-summary.txt")
     }
 
     if (format === "pdf") {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 10;
-      const maxLineWidth = pageWidth - margin * 2;
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const margin = 10
+      const maxLineWidth = pageWidth - margin * 2
 
-      doc.setFont("times", "normal");
-      doc.setFontSize(12);
+      doc.setFont("times", "normal")
+      doc.setFontSize(12)
 
       // Teks asli
-      doc.text("Teks Asli:", margin, 10, { align: "left" });
-      doc.setFontSize(11);
-      let y = 18;
-      doc.splitTextToSize(inputText, maxLineWidth).forEach(line => {
-        doc.text(line, margin, y, { align: "justify" });
-        y += 6;
-      });
+      doc.text("Teks Asli:", margin, 10, { align: "left" })
+      doc.setFontSize(11)
+      let y = 18
+      doc.splitTextToSize(inputText, maxLineWidth).forEach((line) => {
+        doc.text(line, margin, y, { align: "justify" })
+        y += 6
+      })
 
       // Ringkasan
-      y += 8;
-      doc.setFontSize(12);
-      doc.text("Hasil Ringkasan:", margin, y, { align: "left" });
-      y += 8;
-      doc.setFontSize(11);
-      doc.splitTextToSize(summary, maxLineWidth).forEach(line => {
-        doc.text(line, margin, y, { align: "justify" });
-        y += 6;
-      });
+      y += 8
+      doc.setFontSize(12)
+      doc.text("Hasil Ringkasan:", margin, y, { align: "left" })
+      y += 8
+      doc.setFontSize(11)
+      doc.splitTextToSize(summary, maxLineWidth).forEach((line) => {
+        doc.text(line, margin, y, { align: "justify" })
+        y += 6
+      })
 
-      doc.save("newsalyze-summary.pdf");
+      doc.save("newsalyze-summary.pdf")
     }
-  };
+  }
 
   const handleExportDocx = () => {
     const doc = new Document({
@@ -352,58 +369,62 @@ export function DashboardContent() {
             new Paragraph({
               children: [new TextRun({ text: "Teks Asli:", bold: true, size: 28 })],
             }),
-            ...inputText.split("\n").map((line) =>
+            ...inputText.split("\n").map(
+              (line) =>
                 new Paragraph({
                   children: [new TextRun({ text: line, size: 24 })],
                   alignment: "JUSTIFIED",
-                })
+                }),
             ),
             new Paragraph({ text: "" }),
             new Paragraph({
               children: [new TextRun({ text: "Hasil Ringkasan:", bold: true, size: 28 })],
             }),
-            ...summary.split("\n").map((line) =>
+            ...summary.split("\n").map(
+              (line) =>
                 new Paragraph({
                   children: [new TextRun({ text: line, size: 24 })],
                   alignment: "JUSTIFIED",
-                })
+                }),
             ),
           ],
         },
       ],
-    });
+    })
 
-    Packer.toBlob(doc).then((blob) => {
-      saveAs(blob, "newsalyze-summary.docx");
-      toast.success("Berhasil ekspor ke DOCX");
-    }).catch(() => {
-      toast.error("Gagal ekspor ke DOCX");
-    });
-  };
+    Packer.toBlob(doc)
+      .then((blob) => {
+        saveAs(blob, "newsalyze-summary.docx")
+        toast.success("Berhasil ekspor ke DOCX")
+      })
+      .catch(() => {
+        toast.error("Gagal ekspor ke DOCX")
+      })
+  }
 
   const handleFocus = () => {
     if (inputText.length > 0) {
-      setIsExpanded(true);
+      setIsExpanded(true)
     }
-  };
+  }
 
   function formatTitleFromId(id: string): string {
-    const parts = id.split("-").slice(1); // buang timestamp
-    return parts.map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+    const parts = id.split("-").slice(1) // buang timestamp
+    return parts.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
   }
 
   function capitalizeSentences(text: string): string {
     return text
-        .split(/([.!?])\s*/) // pisahkan berdasarkan tanda akhir kalimat
-        .map((part, i, arr) => {
-          if (i % 2 === 0) {
-            return part.trim().charAt(0).toUpperCase() + part.trim().slice(1);
-          } else {
-            return part; // bagian tanda baca dan spasi setelahnya
-          }
-        })
-        .join("")
-        .trim();
+      .split(/([.!?])\s*/) // pisahkan berdasarkan tanda akhir kalimat
+      .map((part, i, arr) => {
+        if (i % 2 === 0) {
+          return part.trim().charAt(0).toUpperCase() + part.trim().slice(1)
+        } else {
+          return part // bagian tanda baca dan spasi setelahnya
+        }
+      })
+      .join("")
+      .trim()
   }
 
   return (
@@ -417,11 +438,7 @@ export function DashboardContent() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
-                <img
-                    src={photoUrl || "/placeholder.svg"}
-                    alt="User avatar"
-                    className="h-8 w-8 rounded-full"
-                />
+                <img src={photoUrl || "/placeholder.svg"} alt="User avatar" className="h-8 w-8 rounded-full" />
                 {username && <span className="font-medium text-sm">{username}</span>}
               </Button>
             </DropdownMenuTrigger>
@@ -477,15 +494,9 @@ export function DashboardContent() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleExport("pdf")}>
-                      .pdf
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportDocx}>
-                      .docx
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport("txt")}>
-                      .txt
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport("pdf")}>.pdf</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportDocx}>.docx</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport("txt")}>.txt</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -493,50 +504,47 @@ export function DashboardContent() {
 
             {/* Rekomendasi Berita */}
             <div className="bg-white p-6 border border-gray-200 rounded-lg space-y-4 max-h-[400px] overflow-y-auto">
-              <h3 className="font-semibold text-lg mb-2">
-                Rekomendasi Berita untuk Anda
-              </h3>
-              {recommendations.length > 0 ? (
-                  recommendations.map((rec, i) => (
-                      <div
-                          key={i}
-                          className="flex items-start gap-4 border-b pb-4 last:border-b-0"
+              <h3 className="font-semibold text-lg mb-2">Rekomendasi Berita untuk Anda</h3>
+
+              {isLoadingRecommendations ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
+                  <p className="text-sm text-gray-600">Sedang memproses rekomendasi berita...</p>
+                </div>
+              ) : recommendations.length > 0 ? (
+                recommendations.map((rec, i) => (
+                  <div key={i} className="flex items-start gap-4 border-b pb-4 last:border-b-0">
+                    <img
+                      src={rec.imageUrl || "/placeholder.svg"}
+                      alt="Thumbnail Berita"
+                      className="w-24 h-16 object-cover rounded-md"
+                      onError={(e) => {
+                        ;(e.target as HTMLImageElement).src = "/placeholder.png"
+                      }}
+                    />
+
+                    <div className="flex flex-col">
+                      <a
+                        href={rec.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-sm text-blue-600 hover:underline"
                       >
-                        <img
-                            src={rec.imageUrl}
-                            alt="Thumbnail Berita"
-                            className="w-24 h-16 object-cover rounded-md"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/placeholder.png";
-                            }}
-                        />
+                        {formatTitleFromId(rec.article_id)}
+                      </a>
 
-                        <div className="flex flex-col">
-                          <a
-                              href={rec.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium text-sm text-blue-600 hover:underline"
-                          >
-                            {formatTitleFromId(rec.article_id)}
-                          </a>
-
-                          <span className="text-xs text-gray-500 mt-1">
-                          Kategori : {capitalizeSentences(rec.category)}
-                        </span>
-                        </div>
-                      </div>
-                  ))
+                      <span className="text-xs text-gray-500 mt-1">Kategori : {capitalizeSentences(rec.category)}</span>
+                    </div>
+                  </div>
+                ))
               ) : (
-                  <p className="text-sm text-gray-500">Belum ada rekomendasi tersedia.</p>
+                <p className="text-sm text-gray-500">Belum ada rekomendasi tersedia.</p>
               )}
             </div>
           </div>
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col items-center justify-center space-y-6 pt-16 w-full">
-            <h2 className="text-2xl font-bold text-center">
-              Analisa berita Anda disini!
-            </h2>
+            <h2 className="text-2xl font-bold text-center">Analisa berita Anda disini!</h2>
 
             <div className="w-full max-w-xl mx-auto">
               <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
@@ -567,11 +575,11 @@ export function DashboardContent() {
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <input
-                          type="file"
-                          accept=".pdf,.docx,.txt"
-                          style={{ display: "none" }}
-                          ref={fileInputRef}
-                          onChange={handleFileUpload}
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        style={{ display: "none" }}
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
                       />
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -592,5 +600,5 @@ export function DashboardContent() {
         )}
       </main>
     </div>
-  );
+  )
 }

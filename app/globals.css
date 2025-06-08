@@ -1,3 +1,4 @@
+@import url('https://unpkg.com/@geist/fonts/geist-sans.css');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -41,6 +42,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-geist-sans: 'Geist Sans', sans-serif;
+  --font-sans: var(--font-geist-sans);
 }
 
 :root {

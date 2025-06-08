@@ -247,11 +247,12 @@ export function DashboardSidebar() {
         <div className="py-1">
           {!isCollapsed && (
             <div className="px-4 py-2">
+              <div className="py-2">
+                  <h2 className="text-xs font-medium text-blue-800">Favorit</h2>
+              </div>
               {favorites.length > 0 && (
                   <>
-                    <div className="px-4 py-2">
-                      <h2 className="text-xs font-medium text-yellow-700">Favorit</h2>
-                    </div>
+                    
                     <SidebarMenu>
                       {favorites.map((item) => (
                           <SidebarMenuItem key={item.id} className="group">
