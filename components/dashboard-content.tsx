@@ -18,6 +18,7 @@ import { nanoid } from "nanoid"
 import { saveAs } from "file-saver"
 import { Document, Packer, Paragraph, TextRun } from "docx"
 import jsPDF from "jspdf"
+import { AlignmentType } from "docx"
 
 export function DashboardContent() {
   const {
@@ -414,7 +415,7 @@ export function DashboardContent() {
               (line) =>
                 new Paragraph({
                   children: [new TextRun({ text: line, size: 24 })],
-                  alignment: "justify",
+                  alignment: AlignmentType.JUSTIFIED,
                 }),
             ),
             new Paragraph({ text: "" }),
@@ -425,7 +426,7 @@ export function DashboardContent() {
               (line) =>
                 new Paragraph({
                   children: [new TextRun({ text: line, size: 24 })],
-                  alignment: "justify",
+                  alignment: AlignmentType.JUSTIFIED,
                 }),
             ),
           ],
