@@ -343,6 +343,7 @@ export function DashboardContent() {
     }
 
     toast.success(`Mengekspor ke format ${format.toUpperCase()}`)
+    // @ts-ignore
     setShowExportOptions(false)
 
     const combinedText = `Teks Asli:\n${inputText}\n\nHasil Ringkasan:\n${summary}`
