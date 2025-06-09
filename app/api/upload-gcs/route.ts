@@ -6,20 +6,29 @@ import path from "path"
 const isDev = process.env.NODE_ENV === "development"
 const bucketName = "newsalyze-pics"
 
+// Fungsi untuk decode Base64 ke JSON
+function decodeBase64ToJson(base64String: string) {
+    const jsonStr = Buffer.from(base64String, "base64").toString("utf8")
+    return JSON.parse(jsonStr)
+}
+
 // Inisialisasi Google Cloud Storage
 const storage = new Storage(
     isDev
         ? {
-            projectId: "summarization-model-460906", // boleh ditaruh di .env juga
+            projectId: "summarization-model-460906",
             keyFilename: path.join(process.cwd(), "gcs-service-account.json"),
         }
         : (() => {
-            if (!process.env.GCS_KEY_JSON) {
-                throw new Error("❌ GCS_KEY_JSON belum di-define di environment variables!")
+            const encoded = process.env.GCS_KEY_JSON_BASE64
+            if (!encoded) {
+                throw new Error("❌ GCS_KEY_JSON_BASE64 belum di-define di environment variables!")
             }
+
+            const credentials = decodeBase64ToJson(encoded)
             return {
                 projectId: "summarization-model-460906",
-                credentials: JSON.parse(process.env.GCS_KEY_JSON),
+                credentials,
             }
         })()
 )
