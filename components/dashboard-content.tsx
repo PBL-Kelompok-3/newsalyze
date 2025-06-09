@@ -28,8 +28,6 @@ export function DashboardContent() {
     setSummary,
     showSummary,
     setShowSummary,
-    recommendations,
-    setRecommendations,
   } = useSummary()
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [username, setUsername] = useState<string | null>(null)
@@ -40,6 +38,7 @@ export function DashboardContent() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
 
   type Recommendation = {
     id: string
@@ -554,11 +553,11 @@ export function DashboardContent() {
                   <p className="text-sm text-gray-600">Sedang memproses rekomendasi berita...</p>
                 </div>
               ) : recommendations.length > 0 ? (
-                recommendations.map((rec, i) => (
+                recommendations.map((rec: Recommendation, i: number) => (
                   <div key={i} className="flex items-start gap-4 border-b pb-4 last:border-b-0">
                     <img
-                      src={rec.imageUrl || "/placeholder.svg"}
-                      alt="Thumbnail Berita"
+                        src={typeof rec.imageUrl === "string" && rec.imageUrl.trim() !== "" ? rec.imageUrl : "/placeholder.svg"}
+                        alt="Thumbnail Berita"
                       className="w-24 h-16 object-cover rounded-md"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).src = "/placeholder.png"
@@ -572,7 +571,7 @@ export function DashboardContent() {
                         rel="noopener noreferrer"
                         className="font-medium text-sm text-blue-600 hover:underline"
                       >
-                        {formatTitleFromId(rec.article_id)}
+                        {formatTitleFromId(rec.article_id ?? "")}
                       </a>
 
                       <span className="text-xs text-gray-500 mt-1">Kategori : {capitalizeSentences(rec.category)}</span>
