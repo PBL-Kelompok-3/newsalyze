@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
         console.log("✅ Upload berhasil:", publicUrl)
 
         return NextResponse.json({ url: publicUrl })
-    } catch (err) {
-        console.error("❌ Upload error:", err)
-        return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+    } catch (err: any) {
+        console.error("❌ Upload error:", err?.message || err)
+        return NextResponse.json({ error: err?.message || "Upload failed" }, { status: 500 })
     }
 }
