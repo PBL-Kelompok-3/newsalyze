@@ -389,7 +389,7 @@ export function DashboardContent() {
 
       doc.setFontSize(11)
       const summaryLines = doc.splitTextToSize(summary, maxLineWidth)
-      summaryLines.forEach((line) => {
+      summaryLines.forEach((line: string) => {
         if (y + 6 > pageHeight - margin) {
           doc.addPage()
           y = margin
