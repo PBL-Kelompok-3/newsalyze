@@ -45,7 +45,7 @@ export default function SharePage() {
 
       if (!snapshot.empty) {
         console.log("✅ Data ditemukan")
-        setData(snapshot.docs[0].data())
+        setData(snapshot.docs[0].data() as SharedSummary)
       } else {
         console.warn("❌ Share ID tidak ditemukan di Firestore")
       }
