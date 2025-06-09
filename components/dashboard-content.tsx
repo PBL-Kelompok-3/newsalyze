@@ -41,6 +41,8 @@ export function DashboardContent() {
   const router = useRouter()
 
   type Recommendation = {
+    id: string
+    title: string
     article_id: string
     category: string
     similarity_score: number
@@ -160,7 +162,7 @@ export function DashboardContent() {
           if (recRes.ok) {
             const recData = await recRes.json()
             recsWithImages = await Promise.all(
-              recData.recommendations.map(async (rec) => ({
+                recData.recommendations.map(async (rec: Recommendation) => ({
                 ...rec,
                 imageUrl: await getOGImage(rec.source_url),
               })),
@@ -276,7 +278,7 @@ export function DashboardContent() {
         const recData = await recRes.json()
 
         recsWithImages = await Promise.all(
-          recData.recommendations.map(async (rec) => ({
+            recData.recommendations.map(async (rec: Recommendation) => ({
             ...rec,
             imageUrl: await getOGImage(rec.source_url),
           })),
@@ -366,7 +368,7 @@ export function DashboardContent() {
       y += 8
       doc.setFontSize(11)
       const inputLines = doc.splitTextToSize(inputText, maxLineWidth)
-      inputLines.forEach((line) => {
+      inputLines.forEach((line: string) => {
         if (y + 6 > pageHeight - margin) {
           doc.addPage()
           y = margin
@@ -411,7 +413,7 @@ export function DashboardContent() {
               (line) =>
                 new Paragraph({
                   children: [new TextRun({ text: line, size: 24 })],
-                  alignment: "JUSTIFIED",
+                  alignment: "justify",
                 }),
             ),
             new Paragraph({ text: "" }),
@@ -422,7 +424,7 @@ export function DashboardContent() {
               (line) =>
                 new Paragraph({
                   children: [new TextRun({ text: line, size: 24 })],
-                  alignment: "JUSTIFIED",
+                  alignment: "justify",
                 }),
             ),
           ],
