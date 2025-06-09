@@ -56,8 +56,9 @@ export async function POST(req: NextRequest) {
 
         await fileRef.save(buffer, {
             metadata: { contentType: file.type },
-            public: true,
         })
+
+        await fileRef.makePublic()
 
         const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`
         console.log("✅ Upload berhasil:", publicUrl)
