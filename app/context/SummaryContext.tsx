@@ -2,6 +2,12 @@
 
 import { createContext, useContext, useState } from "react"
 
+type Recommendation = {
+    id: string
+    title: string
+    [key: string]: unknown
+}
+
 type SummaryContextType = {
     summary: string
     setSummary: (val: string) => void
@@ -9,8 +15,8 @@ type SummaryContextType = {
     setInputText: (val: string) => void
     showSummary: boolean
     setShowSummary: (val: boolean) => void
-    recommendations: any[]
-    setRecommendations: (val: any[]) => void
+    recommendations: Recommendation[]
+    setRecommendations: (val: Recommendation[]) => void
 }
 
 export const SummaryContext = createContext<SummaryContextType>({
@@ -24,16 +30,25 @@ export const SummaryContext = createContext<SummaryContextType>({
     setRecommendations: () => {},
 })
 
-
 export const SummaryProvider = ({ children }: { children: React.ReactNode }) => {
     const [summary, setSummary] = useState("")
     const [inputText, setInputText] = useState("")
     const [showSummary, setShowSummary] = useState(false)
-    const [recommendations, setRecommendations] = useState<any[]>([])
-
+    const [recommendations, setRecommendations] = useState<Recommendation[]>([])
 
     return (
-        <SummaryContext.Provider value={{ summary, setSummary, inputText, setInputText, showSummary, setShowSummary, recommendations, setRecommendations }}>
+        <SummaryContext.Provider
+            value={{
+                summary,
+                setSummary,
+                inputText,
+                setInputText,
+                showSummary,
+                setShowSummary,
+                recommendations,
+                setRecommendations,
+            }}
+        >
             {children}
         </SummaryContext.Provider>
     )

@@ -7,7 +7,7 @@ const agent = new Agent({ connect: { rejectUnauthorized: false } })
 export async function POST(req: Request) {
     const { url } = await req.json()
 
-    const res = await fetch("https://34.124.244.236/summarize-url", {
+    const res = await fetch("https://35.197.145.2/summarize-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),

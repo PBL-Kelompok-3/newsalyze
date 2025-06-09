@@ -86,31 +86,40 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
     router.push("/sign-in")
-  } catch (error: any) {
-    let errorMessage = "Terjadi kesalahan saat mendaftar."
+  } catch (error: unknown) {
+      let errorMessage = "Terjadi kesalahan saat mendaftar."
 
-    if (error.code === "auth/email-already-in-use") {
-      errorMessage = "Email sudah terdaftar. Silakan gunakan email lain."
-      form.setError("email", {
-        type: "manual",
-        message: errorMessage,
-      })
-    } else if (error.code === "auth/invalid-email") {
-      errorMessage = "Format email tidak valid."
-      form.setError("email", {
-        type: "manual",
-        message: errorMessage,
-      })
-    } else if (error.code === "auth/weak-password") {
-      errorMessage = "Password terlalu lemah."
-      form.setError("password", {
-        type: "manual",
-        message: errorMessage,
-      })
-    }
+      if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof (error as Record<string, unknown>).code === "string"
+      ) {
+          const errorCode = (error as { code: string }).code
 
-    toast.error(errorMessage)
-  } finally {
+          if (errorCode === "auth/email-already-in-use") {
+              errorMessage = "Email sudah terdaftar. Silakan gunakan email lain."
+              form.setError("email", {
+                  type: "manual",
+                  message: errorMessage,
+              })
+          } else if (errorCode === "auth/invalid-email") {
+              errorMessage = "Format email tidak valid."
+              form.setError("email", {
+                  type: "manual",
+                  message: errorMessage,
+              })
+          } else if (errorCode === "auth/weak-password") {
+              errorMessage = "Password terlalu lemah."
+              form.setError("password", {
+                  type: "manual",
+                  message: errorMessage,
+              })
+          }
+      }
+      toast.error(errorMessage)
+  }
+ finally {
     setIsLoading(false)
   }
 }  

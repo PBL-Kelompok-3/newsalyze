@@ -10,12 +10,27 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "react-hot-toast"
 import { saveAs } from "file-saver"
 import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
+import Image from "next/image"
+
 
 export default function SharePage() {
+
+  type Recommendation = {
+    article_id: string
+    category: string
+    imageUrl?: string
+    source_url: string
+  }
+
+  type SharedSummary = {
+    text: string
+    summary: string
+    recommendations?: Recommendation[]
+  }
+
   const params = useParams()
   const shareId = params?.shareId?.toString()
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<SharedSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [imageErrors, setImageErrors] = useState<{ [key: number]: boolean }>({})
 
@@ -107,7 +122,7 @@ export default function SharePage() {
       const originalLines = doc.splitTextToSize(data.text, 180)
       doc.text(originalLines, 14, 36)
 
-      let nextY = 36 + originalLines.length * 6
+      const nextY = 36 + originalLines.length * 6
 
       doc.text("Ringkasan:", 14, nextY)
       const summaryLines = doc.splitTextToSize(data.summary, 180)
@@ -195,16 +210,18 @@ export default function SharePage() {
           <div className="bg-white p-6 border border-gray-200 rounded-lg space-y-4 max-h-[400px] overflow-y-auto shadow-sm">
             <h3 className="font-semibold text-lg mb-2">Rekomendasi Berita untuk Anda</h3>
 
-            {data.recommendations.map((rec: any, i: number) => (
-              <div key={i} className="flex items-start gap-4 border-b pb-4 last:border-b-0">
+            {data.recommendations.map((rec: Recommendation, i: number) => (
+                <div key={i} className="flex items-start gap-4 border-b pb-4 last:border-b-0">
                 {/* Tampilkan gambar asli jika ada, kalau tidak ada atau error tampilkan placeholder */}
                 {rec.imageUrl && !imageErrors[i] ? (
-                  <img
-                    src={rec.imageUrl || "/placeholder.svg"}
-                    alt="Thumbnail Berita"
-                    className="w-24 h-16 object-cover rounded-md"
-                    onError={() => handleImageError(i)}
-                  />
+                    <Image
+                        src={rec.imageUrl}
+                        alt="Thumbnail Berita"
+                        width={96}
+                        height={64}
+                        className="w-24 h-16 object-cover rounded-md"
+                        onError={() => handleImageError(i)}
+                    />
                 ) : (
                   <div className="w-24 h-16 bg-gray-200 rounded-md flex items-center justify-center">
                     <ImageIcon className="h-6 w-6 text-gray-400" />

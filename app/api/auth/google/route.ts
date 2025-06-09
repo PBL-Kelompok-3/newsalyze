@@ -8,10 +8,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    // Proses token atau kode dari Google OAuth
+    console.log("Google OAuth request body:", body)
+    // Proses token atau kode dari Google OAuth di sini
 
     return NextResponse.json({ success: true })
   } catch (error) {
+    console.error("Google OAuth error:", error)
     return NextResponse.json({ error: "Authentication failed" }, { status: 500 })
   }
 }

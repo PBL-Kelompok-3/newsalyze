@@ -87,7 +87,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
     }
 
     toast.success("Login berhasil!")
-  } catch (error: any) {
+  } catch {
     toast.error("Detail akun salah!")
   } finally {
     setIsLoading(false)
@@ -136,7 +136,7 @@ async function handleGoogleSignIn() {
     } else {
       router.push("/dashboard")
     }
-    } catch (error) {
+    } catch {
       toast.error("Login gagal!");
     } finally {
       setIsGoogleLoading(false);

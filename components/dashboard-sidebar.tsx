@@ -297,7 +297,7 @@ export function DashboardSidebar() {
                                     const user = auth.currentUser
                                     if (!user) return
 
-                                    const isNowFavorite = !(item as any).isFavorite
+                                    const isNowFavorite = !(item as HistoryItem).isFavorite
                                     await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
                                       isFavorite: isNowFavorite,
                                     })
@@ -306,7 +306,7 @@ export function DashboardSidebar() {
                                   }}
                                 >
                                   <Star className="h-4 w-4" />
-                                  <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
+                                  <span>{(item as HistoryItem).isFavorite ? "Unfavorite" : "Favorite"}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
@@ -369,7 +369,7 @@ export function DashboardSidebar() {
                               const user = auth.currentUser
                               if (!user) return
 
-                              const isNowFavorite = !(item as any).isFavorite
+                              const isNowFavorite = !(item as HistoryItem).isFavorite
                               await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
                                 isFavorite: isNowFavorite,
                               })
@@ -378,7 +378,7 @@ export function DashboardSidebar() {
                             }}
                           >
                             <Star className="h-4 w-4" />
-                            <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
+                            <span>{(item as HistoryItem).isFavorite ? "Unfavorite" : "Favorite"}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
@@ -444,7 +444,7 @@ export function DashboardSidebar() {
                                 const user = auth.currentUser
                                 if (!user) return
 
-                                const isNowFavorite = !(item as any).isFavorite
+                                const isNowFavorite = !(item as HistoryItem).isFavorite
                                 await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
                                   isFavorite: isNowFavorite,
                                 })
@@ -453,7 +453,7 @@ export function DashboardSidebar() {
                               }}
                             >
                               <Star className="h-4 w-4" />
-                              <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
+                              <span>{(item as HistoryItem).isFavorite ? "Unfavorite" : "Favorite"}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"
@@ -520,7 +520,7 @@ export function DashboardSidebar() {
                                 const user = auth.currentUser
                                 if (!user) return
 
-                                const isNowFavorite = !(item as any).isFavorite
+                                const isNowFavorite = !(item as HistoryItem).isFavorite
                                 await updateDoc(doc(db, "users", user.uid, "summaries", item.id), {
                                   isFavorite: isNowFavorite,
                                 })
@@ -529,7 +529,7 @@ export function DashboardSidebar() {
                               }}
                             >
                               <Star className="h-4 w-4" />
-                              <span>{(item as any).isFavorite ? "Unfavorite" : "Favorite"}</span>
+                              <span>{(item as HistoryItem).isFavorite ? "Unfavorite" : "Favorite"}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="flex items-center gap-2 text-red-500 focus:bg-gray-100 focus:text-red-500"

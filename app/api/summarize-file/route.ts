@@ -13,18 +13,18 @@ export async function POST(req: Request) {
         if (typeof value === "string") {
             formData.set(key, value)
         } else {
-            const blob = value as Blob
-            const arrayBuffer = await blob.arrayBuffer()
+            const file = value as File
+            const arrayBuffer = await file.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
 
-            const fblob = new Blob([buffer], { type: blob.type }) as any
-            formData.set(key, fblob, blob.name ?? "upload.dat")
+            const fblob = new Blob([buffer], { type: file.type }) as Blob
+            formData.set(key, fblob, file.name ?? "upload.dat")
         }
     }
 
     const encoder = new FormDataEncoder(formData)
 
-    const res = await fetch("https://34.124.244.236:443/summarize-file", {
+    const res = await fetch("https://35.197.145.2:443/summarize-file", {
         method: "POST",
         body: encoder.encode(),
         headers: encoder.headers,

@@ -30,7 +30,7 @@ export default function CategorySelectionPage() {
     if (!auth.currentUser) {
       router.push("/sign-in")
     }
-  }, [])
+  }, [router])
 
   // Fungsi untuk menangani pemilihan kategori
   const handleCategoryToggle = (categoryId: string) => {
@@ -81,12 +81,20 @@ export default function CategorySelectionPage() {
       })
 
       router.push("/dashboard")
-    } catch (error: any) {
-      toast({
-        title: "Gagal Menyimpan",
-        description: error.message || "Terjadi kesalahan saat menyimpan data",
-        variant: "destructive",
-      })
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast({
+          title: "Gagal Menyimpan",
+          description: error.message,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Gagal Menyimpan",
+          description: "Terjadi kesalahan saat menyimpan data",
+          variant: "destructive",
+        })
+      }
     }
   }
 

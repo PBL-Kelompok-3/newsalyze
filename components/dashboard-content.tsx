@@ -35,10 +35,18 @@ export function DashboardContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
-  const [showExportOptions, setShowExportOptions] = useState(false)
+  const [setShowExportOptions] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
+
+  type Recommendation = {
+    article_id: string
+    category: string
+    similarity_score: number
+    source_url: string
+    imageUrl: string
+  }
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -67,7 +75,7 @@ export function DashboardContent() {
     if (summary) {
       setShowSummary(true)
     }
-  }, [summary])
+  }, [summary, setShowSummary])
 
   const handleEditProfile = () => router.push("/profile/edit")
 
@@ -77,6 +85,7 @@ export function DashboardContent() {
       toast.success("Berhasil logout")
       router.replace("/sign-in")
     } catch (error) {
+      console.error(error)
       toast.error("Gagal logout")
     }
   }
@@ -98,6 +107,8 @@ export function DashboardContent() {
     setIsLoading(true)
     const formData = new FormData()
     formData.append("file", file)
+
+    const recsWithImages: Recommendation[] = []
 
     try {
       const res = await fetch("/api/summarize-file", {
@@ -145,7 +156,7 @@ export function DashboardContent() {
             }),
           })
 
-          let recsWithImages = []
+          let recsWithImages: Recommendation[] = []
           if (recRes.ok) {
             const recData = await recRes.json()
             recsWithImages = await Promise.all(
@@ -187,6 +198,7 @@ export function DashboardContent() {
         createdAt: serverTimestamp(),
       })
     } catch (err) {
+      console.error(err)
       toast.error("Gagal upload file")
     } finally {
       setIsLoading(false)
@@ -258,7 +270,7 @@ export function DashboardContent() {
         }),
       })
 
-      let recsWithImages = []
+      let recsWithImages: Recommendation[] = []
 
       if (recRes.ok) {
         const recData = await recRes.json()
@@ -442,7 +454,7 @@ export function DashboardContent() {
   function capitalizeSentences(text: string): string {
     return text
       .split(/([.!?])\s*/) // pisahkan berdasarkan tanda akhir kalimat
-      .map((part, i, arr) => {
+      .map((part, i) => {
         if (i % 2 === 0) {
           return part.trim().charAt(0).toUpperCase() + part.trim().slice(1)
         } else {

@@ -44,17 +44,20 @@ export function ForgotPasswordForm() {
       await sendPasswordResetEmail(auth, values.email);
       setIsSubmitted(true);
       toast.success("Email reset password telah dikirim!");
-    } catch (error: any) {
-      let errorMessage = "Terjadi kesalahan.";
+    } catch (error: unknown) {
+    let errorMessage = "Terjadi kesalahan.";
 
-      if (error.code === "auth/user-not-found") {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      const firebaseError = error as { code: string };
+      if (firebaseError.code === "auth/user-not-found") {
         errorMessage = "Email tidak ditemukan.";
-      } else if (error.code === "auth/invalid-email") {
+      } else if (firebaseError.code === "auth/invalid-email") {
         errorMessage = "Format email tidak valid.";
       }
-
-      toast.error(errorMessage);
-    } finally {
+    }
+    toast.error(errorMessage);
+  }
+finally {
       setIsLoading(false);
     }
   }
