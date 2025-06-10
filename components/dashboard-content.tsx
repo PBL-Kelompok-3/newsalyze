@@ -38,7 +38,7 @@ export function DashboardContent() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const { recommendations, setRecommendations } = useSummary()
 
   type Recommendation = {
     id: string
@@ -154,7 +154,7 @@ export function DashboardContent() {
               alpha: 0.6,
               beta: 0.3,
               gamma: 0.1,
-              n_recommendations: 5,
+              n_recommendations: 10,
             }),
           })
 
@@ -553,31 +553,35 @@ export function DashboardContent() {
                   <p className="text-sm text-gray-600">Sedang memproses rekomendasi berita...</p>
                 </div>
               ) : recommendations.length > 0 ? (
-                recommendations.map((rec: Recommendation, i: number) => (
-                  <div key={i} className="flex items-start gap-4 border-b pb-4 last:border-b-0">
-                    <img
-                        src={typeof rec.imageUrl === "string" && rec.imageUrl.trim() !== "" ? rec.imageUrl : "/placeholder.svg"}
-                        alt="Thumbnail Berita"
-                      className="w-24 h-16 object-cover rounded-md"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src = "/placeholder.png"
-                      }}
-                    />
-
-                    <div className="flex flex-col">
-                      <a
-                        href={rec.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-sm text-blue-600 hover:underline"
-                      >
-                        {formatTitleFromId(rec.article_id ?? "")}
-                      </a>
-
-                      <span className="text-xs text-gray-500 mt-1">Kategori : {capitalizeSentences(rec.category)}</span>
-                    </div>
-                  </div>
-                ))
+                  Array.isArray(recommendations) && recommendations.length > 0 ? (
+                        recommendations.map((rec, i) => (
+                            <div key={i} className="flex items-start gap-4 border-b pb-4 last:border-b-0">
+                              <img
+                                  src={rec.imageUrl?.trim() ? rec.imageUrl : "/placeholder.png"}
+                                  alt="Thumbnail Berita"
+                                  className="w-24 h-16 object-cover rounded-md"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/placeholder.png"
+                                  }}
+                              />
+                              <div className="flex flex-col">
+                                <a
+                                    href={rec.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-sm text-blue-600 hover:underline"
+                                >
+                                  {formatTitleFromId(rec.article_id ?? "")}
+                                </a>
+                                <span className="text-xs text-gray-500 mt-1">
+                                  Kategori: {capitalizeSentences(rec.category ?? "umum")}
+                                </span>
+                              </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-gray-500">Belum ada rekomendasi tersedia.</p>
+                    )
               ) : (
                 <p className="text-sm text-gray-500">Belum ada rekomendasi tersedia.</p>
               )}

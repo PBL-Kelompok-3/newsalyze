@@ -17,6 +17,8 @@ type SummaryContextType = {
     setShowSummary: (val: boolean) => void
     recommendations: Recommendation[]
     setRecommendations: (val: Recommendation[]) => void
+    isLoadingRecommendations: boolean
+    setIsLoadingRecommendations: (val: boolean) => void
 }
 
 export const SummaryContext = createContext<SummaryContextType>({
@@ -28,6 +30,8 @@ export const SummaryContext = createContext<SummaryContextType>({
     setShowSummary: () => {},
     recommendations: [],
     setRecommendations: () => {},
+    isLoadingRecommendations: false,
+    setIsLoadingRecommendations: () => {},
 })
 
 export const SummaryProvider = ({ children }: { children: React.ReactNode }) => {
@@ -35,6 +39,7 @@ export const SummaryProvider = ({ children }: { children: React.ReactNode }) => 
     const [inputText, setInputText] = useState("")
     const [showSummary, setShowSummary] = useState(false)
     const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+    const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
 
     return (
         <SummaryContext.Provider
@@ -47,6 +52,8 @@ export const SummaryProvider = ({ children }: { children: React.ReactNode }) => 
                 setShowSummary,
                 recommendations,
                 setRecommendations,
+                isLoadingRecommendations,
+                setIsLoadingRecommendations,
             }}
         >
             {children}

@@ -36,6 +36,7 @@ export function DashboardSidebar() {
   const { setSummary, setInputText, setShowSummary, setRecommendations } = useSummary()
   const [favorites, setFavorites] = useState<HistoryItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
 
   const [historyItems, setHistoryItems] = useState<{
     today: HistoryItem[]
@@ -124,6 +125,8 @@ export function DashboardSidebar() {
     if (docSnap.exists()) {
       const data = docSnap.data()
 
+      setIsLoadingRecommendations(true)
+
       const updateSection = (items: HistoryItem[]) =>
         items.map((item) =>
           item.id === id ? { ...item, isSelected: true, summary: data.summary } : { ...item, isSelected: false },
@@ -138,10 +141,16 @@ export function DashboardSidebar() {
       setSummary(data.summary) // Kirim ke tampilan utama
       setInputText(data.text)
       setShowSummary(true)
-      setRecommendations(data.recommendations || [])
+
+      setRecommendations(Array.isArray(data.recommendations) ? data.recommendations : [])
+
+      setIsLoadingRecommendations(false)
 
       // OPTIONAL: Kirim summary ke komponen utama
       console.log("Summary dipilih:", data.summary)
+      console.log("🔥 Data summary:", data)
+      console.log("🔥 Rekomendasi:", data.recommendations)
+
     }
   }
 
