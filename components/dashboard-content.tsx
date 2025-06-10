@@ -571,10 +571,10 @@ export function DashboardContent() {
                                     rel="noopener noreferrer"
                                     className="font-medium text-sm text-blue-600 hover:underline"
                                 >
-                                  {formatTitleFromId(rec.article_id ?? "")}
+                                  {formatTitleFromId((rec.article_id ?? "") as string)}
                                 </a>
                                 <span className="text-xs text-gray-500 mt-1">
-                                  Kategori: {capitalizeSentences(rec.category ?? "umum")}
+                                  Kategori: {capitalizeSentences(String(rec.category ?? "umum"))}
                                 </span>
                               </div>
                             </div>
