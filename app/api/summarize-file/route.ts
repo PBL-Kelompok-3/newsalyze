@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     const encoder = new FormDataEncoder(formData)
 
-    const res = await fetch("https://35.197.145.2:443/summarize-file", {
+    const res = await fetch("https://35.247.133.23:443/summarize-file", {
         method: "POST",
         body: encoder.encode(),
         headers: encoder.headers,

@@ -9,7 +9,7 @@ export async function POST(req: Request) {
         connect: { rejectUnauthorized: false }, // ⬅️ Ini biar self-signed diterima
     })
 
-    const res = await fetch("https://34.124.244.236/recommendations/", {
+    const res = await fetch("https://34.87.30.246/recommendations/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
