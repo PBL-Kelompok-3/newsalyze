@@ -557,7 +557,7 @@ export function DashboardContent() {
                         recommendations.map((rec, i) => (
                             <div key={i} className="flex items-start gap-4 border-b pb-4 last:border-b-0">
                               <img
-                                  src={rec.imageUrl?.trim() ? rec.imageUrl : "/placeholder.png"}
+                                  src={typeof rec.imageUrl === "string" && rec.imageUrl.trim() !== "" ? rec.imageUrl : "/placeholder.png"}
                                   alt="Thumbnail Berita"
                                   className="w-24 h-16 object-cover rounded-md"
                                   onError={(e) => {
@@ -566,7 +566,7 @@ export function DashboardContent() {
                               />
                               <div className="flex flex-col">
                                 <a
-                                    href={rec.source_url}
+                                    href={typeof rec.source_url === "string" ? rec.source_url : "#"}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="font-medium text-sm text-blue-600 hover:underline"
