@@ -222,7 +222,18 @@ export function DashboardContent() {
       return
     }
 
+    const wordCount = inputText.trim().split(/\s+/).length
+    if (wordCount < 256) {
+      toast.error("Teks terlalu pendek. Minimal 256 kata diperlukan untuk ringkasan.")
+      return
+    }
+    if (wordCount > 1024) {
+      toast.error("Teks terlalu panjang. Maksimal 1024 kata yang diperbolehkan.")
+      return
+    }
+
     setIsLoading(true)
+
     try {
       const user = auth.currentUser // ⬅️ Ditaruh di awal
 
